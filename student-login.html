@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Student Login - SecureCBT</title>
+  <meta name="description" content="Log in with your email and class serial number to begin the SecureCBT examination."/>
+  <link rel="stylesheet" href="css/main.css"/>
+  <link rel="stylesheet" href="css/admin.css"/>
+</head>
+<body class="register-body">
+
+  <a href="index.html" class="register-back">
+    <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+    Back to Home
+  </a>
+
+  <div class="register-card">
+    <div class="register-icon">🔐</div>
+    <h1 class="register-title">Student Login</h1>
+    <p class="register-subtitle" id="examSubtitle">Enter your email and class serial number</p>
+
+    <div id="examClosedBanner" style="display:none;background:rgba(220,38,38,0.15);border:1.5px solid rgba(220,38,38,0.3);border-radius:10px;padding:14px;margin-bottom:20px;text-align:center;color:#fca5a5;font-weight:600;">
+      ⚠️ Exam is currently not active. Please contact your administrator.
+    </div>
+
+    <div id="registerError" style="display:none;background:rgba(220,38,38,0.12);border:1.5px solid rgba(220,38,38,0.3);border-radius:10px;padding:10px 14px;font-size:13px;color:#fca5a5;margin-bottom:16px;"></div>
+
+    <div class="register-field">
+      <label class="register-label" for="regEmail">Email Address *</label>
+      <input class="register-input" type="email" id="regEmail" placeholder="e.g. john@example.com" autocomplete="email"/>
+    </div>
+    <div class="register-field">
+      <label class="register-label" for="regClassSN">Class Serial No. * <span style="font-size:11px;color:rgba(255,255,255,0.4);font-weight:400;">(e.g. A12, B4)</span></label>
+      <input class="register-input" type="text" id="regClassSN" placeholder="e.g. A12" style="font-family:monospace;font-weight:700;text-transform:uppercase;"/>
+    </div>
+
+    <div style="background:rgba(37,99,235,0.1);border:1.5px solid rgba(37,99,235,0.2);border-radius:10px;padding:14px;margin-bottom:20px;">
+      <div style="font-size:13px;color:rgba(255,255,255,0.7);font-weight:600;margin-bottom:8px;">📋 Exam Rules</div>
+      <ul style="font-size:12px;color:rgba(255,255,255,0.5);line-height:1.8;padding-left:16px;list-style:disc;">
+        <li id="ruleQuestions">Questions will be presented one at a time</li>
+        <li id="ruleDuration">You have a limited time to complete the exam</li>
+        <li>Do not switch tabs or minimize the browser</li>
+        <li>Do not refresh the page during the exam</li>
+        <li id="ruleViolations">Repeated violations may auto-submit your exam</li>
+      </ul>
+    </div>
+
+    <button class="register-btn" id="startBtn" onclick="startExam()">
+      <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+      Login &amp; Begin
+    </button>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="js/supabase-config.js"></script><script src="js/db.js"></script>
+  <script src="js/config.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', async () => {
+      const cfg = await DB.getConfig();
+      if (!cfg.examActive) {
+        document.getElementById('examClosedBanner').style.display = 'block';
+        document.getElementById('startBtn').disabled = true;
+        document.getElementById('startBtn').style.opacity = '0.5';
+      }
+      document.getElementById('examSubtitle').textContent = cfg.examTitle || 'Enter your email and class serial number';
+      document.getElementById('ruleQuestions').textContent = `Answer ${cfg.questionsToAttempt || 30} questions from the question bank`;
+      document.getElementById('ruleDuration').textContent = `You have ${cfg.duration || 30} minutes to complete the exam`;
+      document.getElementById('ruleViolations').textContent = `More than ${cfg.maxViolations || 5} violations will auto-submit your exam`;
+    });
+
+    async function startExam() {
+      const email   = document.getElementById('regEmail').value.trim().toLowerCase();
+      const classSN = document.getElementById('regClassSN').value.trim().toUpperCase();
+      const errEl   = document.getElementById('registerError');
+      const startBtn = document.getElementById('startBtn');
+      errEl.style.display = 'none';
+
+      if (!email || !email.includes('@')) return showErr('A valid email address is required.');
+      if (!classSN) return showErr('Class Serial Number is required.');
+
+      startBtn.textContent = 'Verifying...';
+      startBtn.disabled = true;
+
+      const cfg = await DB.getConfig();
+      if (!cfg.examActive) { startBtn.textContent = 'Login & Begin'; startBtn.disabled = false; return showErr('Exam is currently not active.'); }
+
+      // Check if already submitted without exposing result rows to anonymous users.
+      const existing = await DB.hasSubmittedExam(email);
+      if (existing) { startBtn.textContent = 'Login & Begin'; startBtn.disabled = false; return showErr('This email has already submitted the exam. Please contact your administrator.'); }
+
+      // Validate student login by email + class serial number.
+      const student = await DB.findStudentByEmailAndSN(email, classSN);
+      if (!student) {
+        startBtn.textContent = 'Login & Begin'; startBtn.disabled = false;
+        return showErr('No student login found with this email and class serial number. Please contact your administrator.');
+      }
+
+      // Fetch and build exam questions
+      let questions = await DB.getQuestions();
+      if (!questions.length) { startBtn.textContent = 'Login & Begin'; startBtn.disabled = false; return showErr('No questions available. Please contact your administrator.'); }
+
+      if (cfg.shuffleQuestions) questions = shuffle([...questions]);
+      questions = questions.slice(0, cfg.questionsToAttempt || 30);
+      if (cfg.shuffleOptions) {
+        questions = questions.map(q => {
+          if (q.type === 'mcq' && q.options) {
+            const indexed = q.options.map((o, i) => ({ o, i }));
+            const shuffled = shuffle(indexed);
+            return { ...q, options: shuffled.map(x => x.o), answer: shuffled.findIndex(x => x.i === q.answer), _shuffled: true };
+          }
+          return q;
+        });
+      }
+
+      const state = {
+        studentName: student.name,
+        email:       student.email,
+        gender:      student.gender || '',
+        class:       student.class  || '',
+        classSN:     student.classSN || '',
+        questions,
+        answers:     {},
+        violations:  0,
+        startedAt:   Date.now(),
+        timeLeft:    (cfg.duration || 30) * 60,
+        currentIndex: 0,
+      };
+      DB.setExamState(state);
+      try {
+        await DB.upsertSession({ email: student.email, name: student.name, class: student.class, status: 'active', startedAt: new Date().toISOString() });
+      } catch (err) {
+        console.warn('Exam session logging failed, continuing to exam:', err);
+      }
+
+      window.location.href = 'exam.html';
+    }
+
+    function showErr(msg) {
+      const el = document.getElementById('registerError');
+      el.textContent = msg;
+      el.style.display = 'block';
+    }
+
+    function shuffle(arr) {
+      for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+      }
+      return arr;
+    }
+  </script>
+</body>
+</html>

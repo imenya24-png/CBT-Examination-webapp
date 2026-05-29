@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Violation Logs — SecureCBT</title>
+  <link rel="stylesheet" href="css/main.css"/>
+  <link rel="stylesheet" href="css/admin.css"/>
+</head>
+<body class="admin-body">
+<div class="admin-layout">
+<div class="admin-container">
+
+  <div class="page-header">
+    <div class="page-header-left">
+      <button class="back-btn" onclick="history.back()">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+      </button>
+      <div>
+        <div class="page-title">Violation Logs</div>
+        <div class="page-subtitle" id="vCountLabel">0 total violations</div>
+      </div>
+    </div>
+    <div class="page-actions">
+      <button class="btn btn-outline btn-sm" onclick="renderViolations()">↻ Refresh</button>
+      <button class="btn btn-sm" onclick="clearViolations()" style="background:#fee2e2;color:var(--red);border:1.5px solid #fecaca;">🗑️ Clear Logs</button>
+    </div>
+  </div>
+
+  <!-- STAT CARDS -->
+  <div class="violation-stat-cards">
+    <div class="violation-stat red">
+      <div class="violation-stat-icon">🖥️</div>
+      <div class="violation-stat-value" id="vs-tab">0</div>
+      <div class="violation-stat-label">Tab Switches</div>
+    </div>
+    <div class="violation-stat yellow">
+      <div class="violation-stat-icon">👁️</div>
+      <div class="violation-stat-value" id="vs-vis">0</div>
+      <div class="violation-stat-label">Visibility Changes</div>
+    </div>
+    <div class="violation-stat blue">
+      <div class="violation-stat-icon">↻</div>
+      <div class="violation-stat-value" id="vs-refresh">0</div>
+      <div class="violation-stat-label">Page Refreshes</div>
+    </div>
+    <div class="violation-stat purple">
+      <div class="violation-stat-icon">🖱️</div>
+      <div class="violation-stat-value" id="vs-click">0</div>
+      <div class="violation-stat-label">Right Clicks</div>
+    </div>
+    <div class="violation-stat pink">
+      <div class="violation-stat-icon">📋</div>
+      <div class="violation-stat-value" id="vs-copy">0</div>
+      <div class="violation-stat-label">Copy/Paste</div>
+    </div>
+  </div>
+
+  <!-- FILTER -->
+  <div class="card" style="margin-bottom:20px;padding:16px;">
+    <div class="filter-bar" style="margin-bottom:0;">
+      <div class="search-wrap" style="flex:1;">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input class="search-input" id="searchInput" placeholder="Search by email..." oninput="renderViolations()"/>
+      </div>
+      <select class="filter-select" id="typeFilter" onchange="renderViolations()">
+        <option value="">All Types</option>
+        <option value="tab_switch">Tab Switch</option>
+        <option value="visibility">Visibility Change</option>
+        <option value="refresh">Page Refresh</option>
+        <option value="right_click">Right Click</option>
+        <option value="copy_paste">Copy/Paste</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- TABLE -->
+  <div class="card" style="padding:0;overflow:hidden;">
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>Student</th><th>Violation Type</th><th>Details</th><th>Timestamp</th></tr>
+        </thead>
+        <tbody id="vTableBody">
+          <tr><td colspan="4"><div class="empty-state"><p>No violations found.</p></div></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+</div>
+<div id="toast-container"></div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="js/supabase-config.js"></script><script src="js/db.js"></script>
+<script src="js/config.js"></script>
+<script src="js/admin-violations.js"></script>
+</body>
+</html>

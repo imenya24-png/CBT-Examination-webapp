@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Question Bank — SecureCBT</title>
+  <link rel="stylesheet" href="css/main.css"/>
+  <link rel="stylesheet" href="css/admin.css"/>
+</head>
+<body class="admin-body">
+<div class="admin-layout">
+<div class="admin-container">
+
+  <div class="page-header">
+    <div class="page-header-left">
+      <button class="back-btn" onclick="history.back()">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+      </button>
+      <div>
+        <div class="page-title">Question Bank</div>
+        <div class="page-subtitle" id="qCountLabel">0 total questions</div>
+      </div>
+    </div>
+    <div class="page-actions">
+      <button class="btn btn-outline btn-sm" onclick="exportBank()">⬇️ Export Bank</button>
+      <button class="btn btn-primary btn-sm" onclick="openImport()">⬆️ Import Questions</button>
+      <button class="btn btn-sm" onclick="clearAll()" style="background:#fee2e2;color:var(--red);border:1.5px solid #fecaca;">🗑️ Clear All</button>
+    </div>
+  </div>
+
+  <!-- TYPE SUMMARY -->
+  <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:20px;" id="typeSummary"></div>
+
+  <!-- FILTER BAR -->
+  <div class="card" style="margin-bottom:20px;padding:16px;">
+    <div class="filter-bar" style="margin-bottom:0;">
+      <div class="search-wrap" style="flex:1;">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input class="search-input" id="searchInput" placeholder="Search questions..." oninput="renderQuestions()"/>
+      </div>
+      <select class="filter-select" id="typeFilter" onchange="renderQuestions()">
+        <option value="">All Types</option>
+        <option value="mcq">MCQ</option>
+        <option value="truefalse">True/False</option>
+        <option value="fill">Fill in Blank</option>
+        <option value="short">Short Answer</option>
+        <option value="code">Code</option>
+      </select>
+      <select class="filter-select" id="levelFilter" onchange="renderQuestions()">
+        <option value="">All Levels</option>
+        <option value="easy">Easy</option>
+        <option value="medium">Medium</option>
+        <option value="hard">Hard</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- QUESTION LIST -->
+  <div id="questionList"></div>
+
+</div>
+</div>
+
+<!-- IMPORT MODAL -->
+<div class="modal-overlay" id="importModal">
+  <div class="modal" style="max-width:640px;">
+    <div class="modal-header">
+      <div class="modal-title" style="display:flex;align-items:center;gap:8px;">
+        <span style="font-size:16px;">⬆️</span> Import Questions (JSON)
+      </div>
+      <button class="modal-close" onclick="closeImport()">×</button>
+    </div>
+    <div class="tabs" style="margin-bottom:20px;">
+      <button class="tab-btn active" id="tab-input" onclick="switchTab('input')">JSON Input</button>
+      <button class="tab-btn" id="tab-preview" onclick="switchTab('preview')">Preview (0)</button>
+      <button class="tab-btn" id="tab-ref" onclick="switchTab('ref')">Format Reference</button>
+    </div>
+    <!-- JSON Input Tab -->
+    <div id="panel-input">
+      <textarea class="form-textarea" id="jsonInput" placeholder='Paste JSON array of questions here...' style="min-height:200px;font-family:monospace;font-size:13px;"></textarea>
+      <button class="btn btn-primary w-full" style="margin-top:12px;" onclick="parseJSON()">Parse JSON</button>
+    </div>
+    <!-- Preview Tab -->
+    <div id="panel-preview" class="hidden">
+      <div id="previewList" style="max-height:300px;overflow-y:auto;"></div>
+      <button class="btn btn-primary w-full" style="margin-top:12px;" id="importConfirmBtn" onclick="confirmImport()" disabled>Import Questions</button>
+    </div>
+    <!-- Format Reference Tab -->
+    <div id="panel-ref" class="hidden">
+      <pre style="background:#f8fafc;border:1.5px solid var(--admin-border);border-radius:10px;padding:16px;font-size:12px;overflow-x:auto;line-height:1.7;">[
+  {
+    "id": "q1",
+    "type": "mcq",
+    "level": "easy",
+    "section": "Section A",
+    "text": "Question text?",
+    "options": ["Option A","Option B","Option C","Option D"],
+    "answer": 0
+  },
+  {
+    "id": "q2",
+    "type": "truefalse",
+    "level": "easy",
+    "section": "Section A",
+    "text": "True or false statement.",
+    "answer": true
+  },
+  {
+    "id": "q3",
+    "type": "fill",
+    "level": "medium",
+    "section": "Section B",
+    "text": "Fill in the ______.",
+    "answer": "blank"
+  },
+  {
+    "id": "q4",
+    "type": "short",
+    "level": "medium",
+    "section": "Section B",
+    "text": "Explain something.",
+    "answer": "Sample answer"
+  },
+  {
+    "id": "q5",
+    "type": "code",
+    "level": "hard",
+    "section": "Section B",
+    "text": "Write a function.",
+    "answer": "def foo(): pass"
+  }
+]</pre>
+    </div>
+  </div>
+</div>
+
+<!-- VIEW QUESTION MODAL -->
+<div class="modal-overlay" id="viewModal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">Question Details</div>
+      <button class="modal-close" onclick="document.getElementById('viewModal').classList.remove('active')">×</button>
+    </div>
+    <div id="viewModalContent"></div>
+  </div>
+</div>
+
+<div id="toast-container"></div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="js/supabase-config.js"></script><script src="js/db.js"></script>
+<script src="js/config.js"></script>
+<script src="js/admin-questions.js"></script>
+</body>
+</html>

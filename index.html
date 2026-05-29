@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SecureCBT — Python Basic Fundamental Examination</title>
+  <meta name="description" content="SecureCBT is a secure Computer-Based Testing platform for Python Basic Fundamental. Start your examination now." />
+  <link rel="stylesheet" href="css/main.css" />
+  <link rel="stylesheet" href="css/home.css" />
+</head>
+<body class="home-body">
+
+  <!-- NAVBAR -->
+  <nav class="home-nav">
+    <div class="nav-logo">
+      <div class="nav-logo-icon">🎓</div>
+      <span>SecureCBT</span>
+    </div>
+    <div style="position:relative;">
+      <button class="nav-menu-btn" id="menuBtn" onclick="toggleMenu()">
+        Menu
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+      </button>
+      <div class="nav-dropdown" id="navDropdown">
+        <a href="student-login.html">
+          <span>🔐</span> Student Login
+        </a>
+        <a href="admin-login.html">
+          <span>🔐</span> Admin Login
+        </a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- HERO SECTION -->
+  <section class="hero-section">
+    <div class="hero-badge">
+      <div class="hero-badge-dot"></div>
+      <span id="heroBadge">Enterprise Python - Backend Development</span>
+    </div>
+    <h1 class="hero-title" id="heroTitle">Python Basic<br /><span>Fundamental</span></h1>
+    <div class="hero-divider"></div>
+    <p class="hero-label" id="heroLabel">Test of knowledge</p>
+    <p class="hero-desc" id="heroDesc">Programming - Algorithm - Pseudocode</p>
+    <button class="hero-cta" onclick="window.location.href='student-login.html'" id="startBtn">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+      Student Login
+    </button>
+  </section>
+
+  <!-- FEATURES SECTION -->
+  <section class="features-section">
+    <h2 class="features-title">Exam Features</h2>
+    <div class="features-grid">
+      <div class="feature-card">
+        <div class="feature-icon blue">⏱️</div>
+        <h3>Timed Assessment</h3>
+        <p>Auto-save functionality with real-time countdown timer. Your progress is saved automatically as you answer each question.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon green">🛡️</div>
+        <h3>Secure Proctoring</h3>
+        <p>Advanced session locking with tab-switch detection and violation monitoring to ensure exam integrity.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon purple">✅</div>
+        <h3>Instant Results</h3>
+        <p>View your score immediately after submission. Auto-grading for all question types with detailed feedback.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer class="home-footer">
+    © 2025 SecureCBT Examination System. All rights reserved.
+  </footer>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="js/supabase-config.js"></script><script src="js/db.js"></script>
+  <script src="js/config.js"></script>
+  <script src="js/home.js"></script>
+</body>
+</html>

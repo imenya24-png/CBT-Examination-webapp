@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Exam Result - SecureCBT</title>
+  <link rel="stylesheet" href="css/main.css"/>
+  <link rel="stylesheet" href="css/admin.css"/>
+</head>
+<body class="result-body">
+
+  <div class="result-card" id="resultCard">
+    <div style="text-align:center;padding:40px;color:#6b7280;">
+      <div style="font-size:40px;margin-bottom:12px;">...</div>
+      <p>Loading your result...</p>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/supabase-config.js"></script>
+  <script src="js/db.js"></script>
+  <script src="js/config.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', async () => {
+      const cfg = await DB.getConfig();
+      const resultId = sessionStorage.getItem('lastResultId');
+      let result = readStoredResult();
+
+      if (!result) {
+        const results = await DB.getResults();
+        result = resultId ? results.find(r => r.id === resultId) : results[0];
+      }
+
+      if (!result) {
+        renderNoResult();
+        return;
+      }
+
+      if (cfg.showScoreAfter === false) {
+        renderSubmittedOnly(result);
+        clearStoredResult();
+        return;
+      }
+
+      renderResult(result, cfg);
+      clearStoredResult();
+    });
+
+    function readStoredResult() {
+      try {
+        const stored = sessionStorage.getItem('lastResult');
+        return stored ? JSON.parse(stored) : null;
+      } catch {
+        return null;
+      }
+    }
+
+    function clearStoredResult() {
+      sessionStorage.removeItem('lastResult');
+      sessionStorage.removeItem('lastResultId');
+    }
+
+    function renderNoResult() {
+      document.getElementById('resultCard').innerHTML = `
+        <div style="text-align:center;padding:40px;">
+          <div style="font-size:48px;margin-bottom:16px;">!</div>
+          <h2 style="color:#111827;font-size:20px;font-weight:800;margin-bottom:8px;">No Result Found</h2>
+          <p style="color:#6b7280;font-size:14px;margin-bottom:24px;">Could not load your exam result. Please contact your administrator.</p>
+          <a href="index.html" style="background:linear-gradient(135deg,#2563eb,#7c3aed);color:#fff;padding:12px 28px;border-radius:10px;font-weight:700;font-size:15px;text-decoration:none;">
+            Return to Home
+          </a>
+        </div>`;
+    }
+
+    function renderSubmittedOnly(result) {
+      document.getElementById('resultCard').innerHTML = `
+        <div style="text-align:center;padding:40px;">
+          <div style="font-size:48px;margin-bottom:16px;">OK</div>
+          <h2 style="color:#111827;font-size:20px;font-weight:800;margin-bottom:8px;">Exam Submitted</h2>
+          <p style="color:#6b7280;font-size:14px;margin-bottom:24px;">Your exam has been submitted successfully. Your administrator will release results later.</p>
+          ${saveWarning(result)}
+          <a href="index.html" style="background:linear-gradient(135deg,#2563eb,#7c3aed);color:#fff;padding:12px 28px;border-radius:10px;font-weight:700;font-size:15px;text-decoration:none;">
+            Return to Home
+          </a>
+        </div>`;
+    }
+
+    function renderResult(result, cfg) {
+      const percentage = Number(result.percentage || 0);
+      const pass = percentage >= 50;
+      const grade = getGrade(percentage);
+      const timeTaken = result.timeTaken ? formatTime(result.timeTaken) : '-';
+      const answersHtml = buildAnswersReview(result, cfg);
+
+      document.getElementById('resultCard').innerHTML = `
+        <div class="result-score-ring ${pass ? 'pass' : 'fail'}">
+          <div class="result-percentage">${percentage}%</div>
+          <div class="result-grade" style="color:${pass ? '#16a34a' : '#dc2626'};">Grade ${escapeHtml(grade)}</div>
+        </div>
+
+        <h1 class="result-title">${pass ? 'Congratulations!' : 'Better Luck Next Time'}</h1>
+        <p class="result-subtitle">${pass ? 'You have passed the examination.' : 'You did not meet the pass mark of 50%.'}</p>
+
+        ${saveWarning(result)}
+
+        <div style="background:#f8fafc;border-radius:12px;padding:14px 18px;margin-bottom:24px;text-align:left;">
+          <div style="font-size:14px;color:#374151;"><strong>Name:</strong> ${escapeHtml(result.studentName || '-')}</div>
+          <div style="font-size:14px;color:#374151;margin-top:4px;"><strong>Email:</strong> ${escapeHtml(result.email || '-')}</div>
+          <div style="font-size:14px;color:#374151;margin-top:4px;"><strong>Class:</strong> ${escapeHtml(result.class || '-')}</div>
+        </div>
+
+        <div class="result-stats">
+          <div class="result-stat">
+            <div class="result-stat-value" style="color:${pass ? '#16a34a' : '#dc2626'};">${escapeHtml(result.score ?? 0)}/${escapeHtml(result.total ?? 0)}</div>
+            <div class="result-stat-label">Score</div>
+          </div>
+          <div class="result-stat">
+            <div class="result-stat-value">${escapeHtml(timeTaken)}</div>
+            <div class="result-stat-label">Time Taken</div>
+          </div>
+          <div class="result-stat">
+            <div class="result-stat-value" style="color:${Number(result.violations || 0) > 0 ? '#dc2626' : '#16a34a'};">${escapeHtml(result.violations ?? 0)}</div>
+            <div class="result-stat-label">Violations</div>
+          </div>
+        </div>
+
+        ${answersHtml}
+
+        <div style="display:flex;gap:12px;justify-content:center;margin-top:24px;flex-wrap:wrap;">
+          <a href="index.html" style="display:inline-flex;align-items:center;gap:8px;background:#f3f4f6;color:#374151;padding:12px 24px;border-radius:10px;font-weight:600;font-size:14px;text-decoration:none;">
+            Return Home
+          </a>
+          <button onclick="printResult()" style="display:inline-flex;align-items:center;gap:8px;background:linear-gradient(135deg,#2563eb,#7c3aed);color:#fff;padding:12px 24px;border-radius:10px;font-weight:600;font-size:14px;border:none;cursor:pointer;">
+            Print Result
+          </button>
+        </div>
+      `;
+    }
+
+    function buildAnswersReview(result, cfg) {
+      if (!cfg.showCorrectAnswers || !result.answers || !Array.isArray(result.questions)) {
+        return '';
+      }
+
+      const rows = result.questions.map((q, i) => {
+        const qType = String(q.type || '').trim().toLowerCase();
+        const userAns = result.answers[q.id];
+        const correct = q.answer;
+        let isCorrect = false;
+        let userDisplay = userAns !== undefined ? String(userAns) : '(Not answered)';
+        let correctDisplay = String(correct ?? '');
+
+        if (qType === 'mcq') {
+          isCorrect = userAns !== undefined && parseInt(userAns, 10) === parseInt(correct, 10);
+          userDisplay = userAns !== undefined && q.options ? q.options[parseInt(userAns, 10)] || userAns : '(Not answered)';
+          correctDisplay = q.options ? q.options[parseInt(correct, 10)] : correctDisplay;
+        } else if (qType === 'truefalse') {
+          isCorrect = userAns !== undefined && String(userAns).trim().toLowerCase() === String(correct).trim().toLowerCase();
+          userDisplay = userAns !== undefined ? (String(userAns).trim().toLowerCase() === 'true' ? 'True' : 'False') : '(Not answered)';
+          correctDisplay = String(correct).trim().toLowerCase() === 'true' ? 'True' : 'False';
+        } else if (qType === 'fill') {
+          isCorrect = userAns !== undefined && String(userAns).trim().toLowerCase() === String(correct).trim().toLowerCase();
+          userDisplay = userAns !== undefined ? String(userAns) : '(Not answered)';
+        } else {
+          isCorrect = !!(userAns && userAns.toString().trim().length);
+          userDisplay = userAns !== undefined ? String(userAns) : '(Not answered)';
+        }
+
+        const answered = userAns !== undefined && userAns !== '';
+        const bg = isCorrect ? '#f0fdf4' : (answered ? '#fff5f5' : '#f9fafb');
+        const border = isCorrect ? '#86efac' : (answered ? '#fca5a5' : '#e5e7eb');
+        const icon = isCorrect ? 'Correct' : (answered ? 'Wrong' : 'Blank');
+
+        return `
+          <div style="background:${bg};border:1.5px solid ${border};border-radius:10px;padding:14px 16px;margin-bottom:10px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+              <span style="font-size:12px;font-weight:700;color:#6b7280;">Q${i + 1} - ${escapeHtml(qType.toUpperCase())}</span>
+              <span style="font-size:12px;font-weight:700;color:#6b7280;">${icon}</span>
+            </div>
+            <div style="font-size:14px;font-weight:600;color:#111827;margin-bottom:8px;line-height:1.4;">${escapeHtml(q.text || '')}</div>
+            ${qType === 'short' || qType === 'code' ? `
+              <div style="font-size:12px;color:#6b7280;font-style:italic;white-space:pre-wrap;">Your answer: ${escapeHtml(userDisplay || '(Not answered)')}</div>
+            ` : `
+              <div style="font-size:12px;color:#374151;">Your answer: <strong>${escapeHtml(userDisplay)}</strong></div>
+              ${!isCorrect ? `<div style="font-size:12px;color:#16a34a;margin-top:2px;">Correct answer: <strong>${escapeHtml(correctDisplay)}</strong></div>` : ''}
+            `}
+          </div>`;
+      }).join('');
+
+      return `
+        <div style="margin-top:28px;border-top:1.5px solid #e5e7eb;padding-top:24px;text-align:left;">
+          <h3 style="font-size:16px;font-weight:700;color:#111827;margin-bottom:16px;">Answers Review</h3>
+          ${rows}
+        </div>`;
+    }
+
+    function saveWarning(result) {
+      if (result.saved !== false) return '';
+      return `<div style="background:#fff7ed;border:1.5px solid #fdba74;color:#9a3412;border-radius:10px;padding:12px 14px;font-size:13px;font-weight:700;margin-bottom:20px;">Server save warning: ${escapeHtml(result.saveError || 'Result was not confirmed by the server.')}</div>`;
+    }
+
+    function escapeHtml(value) {
+      return String(value ?? '').replace(/[&<>"']/g, ch => ({
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#39;'
+      })[ch]);
+    }
+
+    function printResult() {
+      window.print();
+    }
+  </script>
+</body>
+</html>

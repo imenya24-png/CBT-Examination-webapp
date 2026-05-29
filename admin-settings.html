@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Exam Settings — SecureCBT</title>
+  <link rel="stylesheet" href="css/main.css"/>
+  <link rel="stylesheet" href="css/admin.css"/>
+</head>
+<body class="admin-body">
+<div class="admin-layout">
+<div class="admin-container">
+
+  <div class="page-header">
+    <div class="page-header-left">
+      <button class="back-btn" onclick="window.location.href='admin-dashboard.html'">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+        Dashboard
+      </button>
+      <div>
+        <div class="page-title">Exam Settings</div>
+        <div class="page-subtitle">Configure examination parameters and behaviour</div>
+      </div>
+    </div>
+    <div class="page-actions">
+      <button class="btn btn-outline btn-sm" onclick="resetDefaults()">↺ Reset Defaults</button>
+      <button class="btn btn-primary btn-sm" onclick="saveSettings()">💾 Save Settings</button>
+    </div>
+  </div>
+
+  <!-- Status Banner -->
+  <div class="active-banner" id="statusBanner">
+    <div>
+      <div class="active-banner-text" id="statusText">✅ Exam is currently ACTIVE</div>
+      <div class="active-banner-desc" id="statusDesc">Students can currently access and take the exam.</div>
+    </div>
+    <button class="btn btn-sm" id="toggleExamBtn" onclick="toggleExam()" style="background:#16a34a;color:#fff;">⏹ Stop Exam</button>
+  </div>
+
+  <!-- Section 1: Home Page Content -->
+  <div class="settings-section">
+    <div class="settings-section-header">
+      <span class="settings-section-icon">🏠</span> Home Page Display
+    </div>
+    <div class="settings-grid">
+      <div class="form-group">
+        <label class="form-label">Badge Text</label>
+        <input class="form-input" id="s-badgeText" placeholder="e.g. Enterprise Python"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Main Title</label>
+        <input class="form-input" id="s-mainTitle" placeholder="e.g. Python Basic Fundamental"/>
+      </div>
+    </div>
+    <div class="settings-grid">
+      <div class="form-group">
+        <label class="form-label">Exam Label (subtitle)</label>
+        <input class="form-input" id="s-examLabel" placeholder="e.g. Test of knowledge"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Description</label>
+        <input class="form-input" id="s-description" placeholder="e.g. Programming - Algorithm"/>
+      </div>
+    </div>
+  </div>
+
+  <!-- Section 2: Basic Exam Settings -->
+  <div class="settings-section">
+    <div class="settings-section-header">
+      <span class="settings-section-icon">⚙️</span> Exam Configuration
+    </div>
+    <div class="settings-grid">
+      <div class="form-group">
+        <label class="form-label">Exam Title</label>
+        <input class="form-input" id="s-examTitle" placeholder="e.g. Test of knowledge"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Total Questions in Bank</label>
+        <input class="form-input" type="number" id="s-totalQuestions" min="1"/>
+      </div>
+    </div>
+    <div class="settings-grid">
+      <div class="form-group">
+        <label class="form-label">Questions to Attempt</label>
+        <input class="form-input" type="number" id="s-questionsToAttempt" min="1" max="100"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Duration (minutes)</label>
+        <input class="form-input" type="number" id="s-duration" min="1" max="300"/>
+      </div>
+    </div>
+  </div>
+
+  <!-- Section 3: Navigation & Display -->
+  <div class="settings-section">
+    <div class="settings-section-header">
+      <span class="settings-section-icon">🧭</span> Navigation &amp; Display
+    </div>
+    <div class="settings-row">
+      <div>
+        <div class="settings-row-label">Allow Back Navigation</div>
+        <div class="settings-row-desc">Allow students to go back to previous questions</div>
+      </div>
+      <label class="toggle-switch"><input type="checkbox" id="s-allowBackNav"/><span class="toggle-slider"></span></label>
+    </div>
+    <div class="settings-row">
+      <div>
+        <div class="settings-row-label">Allow Review Before Submit</div>
+        <div class="settings-row-desc">Show a review panel of all answers before submission</div>
+      </div>
+      <label class="toggle-switch"><input type="checkbox" id="s-allowReview"/><span class="toggle-slider"></span></label>
+    </div>
+    <div class="settings-row">
+      <div>
+        <div class="settings-row-label">Shuffle Questions</div>
+        <div class="settings-row-desc">Randomize the order of questions for each student</div>
+      </div>
+      <label class="toggle-switch"><input type="checkbox" id="s-shuffleQuestions"/><span class="toggle-slider"></span></label>
+    </div>
+    <div class="settings-row">
+      <div>
+        <div class="settings-row-label">Shuffle MCQ Options</div>
+        <div class="settings-row-desc">Randomize the answer choices for MCQ questions</div>
+      </div>
+      <label class="toggle-switch"><input type="checkbox" id="s-shuffleOptions"/><span class="toggle-slider"></span></label>
+    </div>
+  </div>
+
+  <!-- Section 4: Results -->
+  <div class="settings-section">
+    <div class="settings-section-header">
+      <span class="settings-section-icon">📊</span> Results Display
+    </div>
+    <div class="settings-row">
+      <div>
+        <div class="settings-row-label">Show Score After Submission</div>
+        <div class="settings-row-desc">Students see their score immediately after submitting</div>
+      </div>
+      <label class="toggle-switch"><input type="checkbox" id="s-showScoreAfter"/><span class="toggle-slider"></span></label>
+    </div>
+    <div class="settings-row">
+      <div>
+        <div class="settings-row-label">Show Correct Answers</div>
+        <div class="settings-row-desc">Show correct answers in the result breakdown page</div>
+      </div>
+      <label class="toggle-switch"><input type="checkbox" id="s-showCorrectAnswers"/><span class="toggle-slider"></span></label>
+    </div>
+  </div>
+
+  <!-- Section 5: Security / Proctoring -->
+  <div class="settings-section">
+    <div class="settings-section-header">
+      <span class="settings-section-icon">🛡️</span> Security &amp; Proctoring
+    </div>
+    <div class="settings-grid">
+      <div class="form-group">
+        <label class="form-label">Max Violations Before Auto-Submit</label>
+        <input class="form-input" type="number" id="s-maxViolations" min="1" max="50"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Network Grace Period (seconds)</label>
+        <input class="form-input" type="number" id="s-networkGrace" min="0" max="60"/>
+      </div>
+    </div>
+    <div class="settings-row">
+      <div>
+        <div class="settings-row-label">Monitor Tab Visibility</div>
+        <div class="settings-row-desc">Log violations when student switches tabs or minimizes browser</div>
+      </div>
+      <label class="toggle-switch"><input type="checkbox" id="s-monitorVisibility"/><span class="toggle-slider"></span></label>
+    </div>
+  </div>
+
+  <!-- Section 6: Admin Credentials -->
+  <div class="settings-section">
+    <div class="settings-section-header">
+      <span class="settings-section-icon">🔐</span> Admin Credentials &amp; Protection
+    </div>
+    <div class="settings-grid">
+      <div class="form-group">
+        <label class="form-label">Admin Email</label>
+        <input class="form-input" type="email" id="s-adminEmail"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Admin Password</label>
+        <input class="form-input" type="password" id="s-adminPassword" placeholder="Leave blank to keep current"/>
+      </div>
+    </div>
+    <div class="settings-grid" style="margin-top:12px;">
+      <div class="form-group">
+        <label class="form-label">Action Protection Password <span style="font-size:11px;color:var(--admin-text-muted);font-weight:400;">(Required for wipes/deletes)</span></label>
+        <input class="form-input" type="password" id="s-protectionPassword" placeholder="e.g. secure123"/>
+      </div>
+    </div>
+  </div>
+
+</div>
+</div>
+
+<div id="toast-container"></div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="js/supabase-config.js"></script><script src="js/db.js"></script>
+<script src="js/config.js"></script>
+<script src="js/admin-settings.js"></script>
+</body>
+</html>

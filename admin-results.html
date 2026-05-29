@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Exam Results — SecureCBT</title>
+  <link rel="stylesheet" href="css/main.css"/>
+  <link rel="stylesheet" href="css/admin.css"/>
+</head>
+<body class="admin-body">
+<div class="admin-layout">
+<div class="admin-container">
+
+  <div class="page-header">
+    <div class="page-header-left">
+      <button class="back-btn" onclick="history.back()">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+      </button>
+      <div>
+        <div class="page-title">Exam Results</div>
+        <div class="page-subtitle" id="resultCountLabel">0 total submissions</div>
+      </div>
+    </div>
+    <div class="page-actions">
+      <button class="btn btn-primary btn-sm" onclick="exportResultsCSV()">⬇️ Export CSV</button>
+    </div>
+  </div>
+
+  <!-- STATS -->
+  <div class="results-stat-cards" id="resultStats">
+    <div class="results-stat"><div class="results-stat-icon">📊</div><div class="results-stat-value" id="rs-total">0</div><div class="results-stat-label">Total Submissions</div></div>
+    <div class="results-stat"><div class="results-stat-icon" style="color:var(--purple);">📈</div><div class="results-stat-value" id="rs-avg">0%</div><div class="results-stat-label">Average Score</div></div>
+    <div class="results-stat"><div class="results-stat-icon" style="color:var(--orange);">🏆</div><div class="results-stat-value" id="rs-high">0%</div><div class="results-stat-label">Highest Score</div></div>
+    <div class="results-stat"><div class="results-stat-icon" style="color:var(--green);">📊</div><div class="results-stat-value" id="rs-pass">0%</div><div class="results-stat-label">Pass Rate (≥50%)</div></div>
+  </div>
+
+  <!-- FILTER -->
+  <div class="card" style="margin-bottom:20px;padding:16px;">
+    <div class="filter-bar" style="margin-bottom:0;">
+      <div class="search-wrap" style="flex:1;">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input class="search-input" id="searchInput" placeholder="Search by name or email..." oninput="renderResults()"/>
+      </div>
+      <select class="filter-select" id="classFilter" onchange="renderResults()">
+        <option value="">All Classes</option>
+        <option>Class A</option><option>Class B</option><option>Class C</option>
+      </select>
+      <select class="filter-select" id="statusFilter" onchange="renderResults()">
+        <option value="">All Status</option>
+        <option value="pass">Pass</option>
+        <option value="fail">Fail</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- TABLE -->
+  <div class="card" style="padding:0;overflow:hidden;">
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>Student</th><th>Class</th><th>Score</th><th>Percentage</th><th>Grade</th><th>Status</th><th>Violations</th><th>Time Taken</th><th>Trigger</th><th>Submitted</th><th>Actions</th></tr>
+        </thead>
+        <tbody id="resultsTableBody">
+          <tr><td colspan="11"><div class="empty-state"><p>No results found.</p></div></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+</div>
+
+<!-- VIEW RESULT MODAL -->
+<div class="modal-overlay" id="viewModal">
+  <div class="modal" style="max-width:600px;">
+    <div class="modal-header">
+      <div class="modal-title">Result Details</div>
+      <button class="modal-close" onclick="document.getElementById('viewModal').classList.remove('active')">×</button>
+    </div>
+    <div id="viewResultContent"></div>
+  </div>
+</div>
+
+<div id="toast-container"></div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="js/supabase-config.js"></script><script src="js/db.js"></script>
+<script src="js/config.js"></script>
+<script src="js/admin-results.js"></script>
+</body>
+</html>
