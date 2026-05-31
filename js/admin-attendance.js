@@ -1,6 +1,9 @@
-// ===== ADMIN ATTENDANCE JS — Supabase async version =====
+// ===== ADMIN ATTENDANCE JS — Supabase async version (Multi-Session Audited Edition) =====
+let activeCloseSessionId = null;
+
 document.addEventListener('DOMContentLoaded', async () => {
-  await requireAdmin();
+  await requirePermission('Attendance');
+  
   // Set today's date as default in new session modal
   const dateInput = document.getElementById('nsDate');
   if (dateInput) {
@@ -10,46 +13,115 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 
 async function refresh() {
-  await renderOpenSession();
+  await renderOpenSessions();
   await renderHistory();
   await renderPendingEditsBanner();
 }
 
 // ============================================================
-// OPEN SESSION PANEL
+// OPEN MULTIPLE SESSIONS GRID
 // ============================================================
-async function renderOpenSession() {
-  const session = await DB.getOpenAttSession();
-  const panel   = document.getElementById('openSessionPanel');
-  if (!session) { 
-    if (panel) panel.style.display = 'none'; 
-    return; 
-  }
-  if (panel) panel.style.display = 'block';
-
-  const r1 = session.round1Serials || [];
-  const r2 = session.round2Serials || [];
+async function renderOpenSessions() {
+  const profile = await DB.getCurrentProfile();
+  let sessions = await DB.getOpenAttSessions();
   
-  const titleEl = document.getElementById('openSessionTitle');
-  if (titleEl) {
-    titleEl.textContent = (session.topic || 'Untitled Session') + ' — ' + session.date;
+  // Tutors see only their own sessions; superadmins see all
+  if (profile.role !== 'superadmin') {
+    sessions = sessions.filter(s => s.createdBy === profile.id);
   }
-  const metaEl = document.getElementById('openSessionMeta');
-  if (metaEl) {
-    metaEl.textContent = session.class + (session.notes ? ' · ' + session.notes : '');
+  
+  const gridEl   = document.getElementById('activeSessionsGrid');
+  if (!gridEl) return;
+
+  if (sessions.length === 0) {
+    gridEl.innerHTML = `
+      <div class="card" style="grid-column: 1 / -1; padding: 32px; text-align: center;">
+        <div style="font-size: 32px; margin-bottom: 12px;">📅</div>
+        <div style="font-size: 16px; font-weight: 700; color: var(--admin-text);">No Active Attendance Sessions</div>
+        <p style="font-size: 13px; color: var(--admin-text-muted); margin-top: 6px; margin-bottom: 16px;">
+          Start a new session to begin taking student attendance in real time.
+        </p>
+        <button class="btn btn-primary" onclick="openNewSessionModal()" style="margin: 0 auto;">+ Start Session</button>
+      </div>
+    `;
+    return;
   }
-  const r1CountEl = document.getElementById('openSessionR1Count');
-  if (r1CountEl) {
-    r1CountEl.textContent = 'Round 1: ' + r1.length + ' present';
-  }
-  const r2CountEl = document.getElementById('openSessionR2Count');
-  if (r2CountEl) {
-    r2CountEl.textContent = 'Round 2: ' + r2.length + ' late';
-  }
+
+  // Build grid HTML for all active sessions in parallel
+  gridEl.innerHTML = sessions.map(s => {
+    const r1 = s.round1Serials || [];
+    const r2 = s.round2Serials || [];
+    
+    return `
+      <div class="att-session-panel" id="panel_session_${s.id}" style="margin-bottom:0; display:flex; flex-direction:column; height: 100%;">
+        <div class="att-session-header" style="border-radius:12px 12px 0 0;">
+          <div>
+            <div style="font-size:10px;font-weight:800;color:rgba(255,255,255,0.6);letter-spacing:1px;text-transform:uppercase;margin-bottom:4px;">Active Session</div>
+            <div style="font-size:16px;font-weight:800;color:#fff;" id="title_${s.id}">${s.topic || 'Untitled Session'}</div>
+            <div style="font-size:12px;color:rgba(255,255,255,0.7);margin-top:2px;">
+              <span class="badge ${s.class === 'Joint' ? 'badge-orange' : s.class === 'Class A' ? 'badge-blue' : 'badge-purple'}" style="font-size:11px; padding:2px 8px; margin-right:6px;">${s.class}</span>
+              📅 ${s.date} ${s.notes ? '· ' + s.notes : ''}
+            </div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:4px;text-align:right;">
+            <span class="badge" style="background:rgba(255,255,255,0.15);color:#fff;font-size:11px;" id="countR1_${s.id}">R1 Present: ${r1.length}</span>
+            <span class="badge" style="background:rgba(255,255,255,0.15);color:#fff;font-size:11px;" id="countR2_${s.id}">R2 Late: ${r2.length}</span>
+          </div>
+        </div>
+
+        <!-- TABS -->
+        <div class="att-round-tabs" style="padding: 12px 20px 0; background: #1e293b; border-bottom:1px solid rgba(255,255,255,0.06);">
+          <button class="att-round-tab active" id="tabR1Btn_${s.id}" onclick="switchRound('${s.id}', 1)">
+            ✅ Round 1 — Present
+          </button>
+          <button class="att-round-tab" id="tabR2Btn_${s.id}" onclick="switchRound('${s.id}', 2)">
+            🕐 Round 2 — Late
+          </button>
+        </div>
+
+        <div style="padding: 20px; background: #fff; border: 1.5px solid var(--admin-border); border-top: none; border-radius: 0 0 12px 12px; flex: 1; display: flex; flex-direction: column; justify-content: space-between;">
+          
+          <!-- ROUND 1 PANEL -->
+          <div id="round1Panel_${s.id}">
+            <div style="font-size:12px;color:var(--admin-text-muted);margin-bottom:8px;">
+              Enter Class Serial numbers of students who are <strong>present</strong> (e.g. <code>A1, A12, B5</code>).
+            </div>
+            <textarea id="r1Input_${s.id}" class="att-serial-input" style="color:#111827; background:#f8fafc; border: 1.5px solid var(--admin-border);" placeholder="e.g. A1, A3, A7, A12..." oninput="livePreview('${s.id}', 1)"></textarea>
+            <div id="r1Preview_${s.id}" class="att-preview"></div>
+            <div style="display:flex;gap:10px;margin-top:10px;">
+              <button class="btn btn-primary" onclick="submitRound('${s.id}', 1)" style="flex:1;">✅ Mark Present</button>
+              <button class="btn btn-outline" onclick="clearRoundInput('${s.id}', 1)">Clear</button>
+            </div>
+          </div>
+
+          <!-- ROUND 2 PANEL -->
+          <div id="round2Panel_${s.id}" style="display:none;">
+            <div style="font-size:12px;color:var(--admin-text-muted);margin-bottom:8px;">
+              Enter Class Serial numbers of students who arrived <strong>late</strong>. Present students will be skipped.
+            </div>
+            <textarea id="r2Input_${s.id}" class="att-serial-input" style="color:#111827; background:#f8fafc; border: 1.5px solid var(--admin-border);" placeholder="e.g. A2, A5, A14..." oninput="livePreview('${s.id}', 2)"></textarea>
+            <div id="r2Preview_${s.id}" class="att-preview"></div>
+            <div style="display:flex;gap:10px;margin-top:10px;">
+              <button class="btn" onclick="submitRound('${s.id}', 2)" style="flex:1;background:#f59e0b;color:#fff;">🕐 Mark Late</button>
+              <button class="btn btn-outline" onclick="clearRoundInput('${s.id}', 2)">Clear</button>
+            </div>
+          </div>
+
+          <!-- CLOSE SESSION ACTION -->
+          <div style="border-top:1.5px solid #f1f5f9;padding-top:16px;margin-top:16px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
+            <div style="font-size:11px;color:var(--admin-text-muted); max-width:65%;">
+              Closing will automatically mark all outstanding students as <strong>Absent</strong>.
+            </div>
+            <button class="btn btn-danger btn-sm" onclick="showCloseConfirm('${s.id}')">🔒 Close &amp; Save</button>
+          </div>
+        </div>
+      </div>
+    `;
+  }).join('');
 }
 
 // ============================================================
-// SERIAL NUMBER PARSER
+// SERIAL NUMBER RESOLUTION
 // ============================================================
 function parseSerials(raw) {
   return [...new Set(
@@ -77,21 +149,23 @@ async function resolveSerials(serials, sessionClass) {
 }
 
 // ============================================================
-// LIVE PREVIEW
+// LIVE PREVIEW EVENT HANDLER
 // ============================================================
-async function livePreview(round) {
-  const session = await DB.getOpenAttSession();
+async function livePreview(sessionId, round) {
+  const openSessions = await DB.getOpenAttSessions();
+  const session = openSessions.find(s => s.id === sessionId);
   if (!session) return;
-  const raw     = document.getElementById('r' + round + 'Input').value;
+
+  const raw     = document.getElementById(`r${round}Input_${sessionId}`).value;
   const serials = parseSerials(raw);
-  const preview = document.getElementById('r' + round + 'Preview');
+  const preview = document.getElementById(`r${round}Preview_${sessionId}`);
   if (!serials.length) { preview.innerHTML = ''; return; }
 
   const res     = await resolveSerials(serials, session.class);
   const r1      = session.round1Serials || [];
   const r2      = session.round2Serials || [];
 
-  let html = '<div class="att-preview-grid">';
+  let html = '<div class="att-preview-grid" style="max-height:120px; overflow-y:auto; margin-top:8px;">';
 
   res.matched.forEach(({ sn, student }) => {
     const alreadyR1 = round === 2 && r1.includes(sn);
@@ -99,44 +173,51 @@ async function livePreview(round) {
     let tag = '', tagStyle = '';
     if (alreadyR1) { tag = 'Already Present'; tagStyle = 'background:#dcfce7;color:#16a34a;'; }
     else if (alreadyR2 && round === 2) { tag = 'Duplicate'; tagStyle = 'background:#fef3c7;color:#92400e;'; }
-    html += `<div class="att-preview-chip ok">
-      <span class="att-chip-sn">${sn}</span>
-      <span class="att-chip-name">${student.name}</span>
-      ${tag ? '<span class="att-chip-tag" style="' + tagStyle + '">' + tag + '</span>' : ''}
-    </div>`;
+    
+    html += `
+      <div class="att-preview-chip ok" style="background:rgba(22,163,74,0.08); border:1px solid rgba(22,163,74,0.2); color:#15803d; padding:4px 8px; border-radius:6px; margin:2px;">
+        <span class="att-chip-sn" style="background:#dcfce7; color:#15803d;">${sn}</span>
+        <span class="att-chip-name" style="font-size:11.5px;">${student.name}</span>
+        ${tag ? '<span class="att-chip-tag" style="' + tagStyle + ' font-size:9px; padding:1px 4px;">' + tag + '</span>' : ''}
+      </div>`;
   });
 
   res.wrongClass.forEach(({ sn, student }) => {
-    html += `<div class="att-preview-chip warn">
-      <span class="att-chip-sn">${sn}</span>
-      <span class="att-chip-name">${student.name}</span>
-      <span class="att-chip-tag" style="background:#ffedd5;color:#c2410c;">Wrong class (${student.class})</span>
-    </div>`;
+    html += `
+      <div class="att-preview-chip warn" style="background:rgba(245,158,11,0.08); border:1px solid rgba(245,158,11,0.2); color:#b45309; padding:4px 8px; border-radius:6px; margin:2px;">
+        <span class="att-chip-sn" style="background:#fef3c7; color:#b45309;">${sn}</span>
+        <span class="att-chip-name" style="font-size:11.5px;">${student.name}</span>
+        <span class="att-chip-tag" style="background:#ffedd5; color:#c2410c; font-size:9px; padding:1px 4px;">Wrong Class (${student.class})</span>
+      </div>`;
   });
 
   res.unknown.forEach(sn => {
-    html += `<div class="att-preview-chip err">
-      <span class="att-chip-sn">${sn}</span>
-      <span class="att-chip-name" style="color:var(--red);">Unknown serial</span>
-    </div>`;
+    html += `
+      <div class="att-preview-chip err" style="background:rgba(220,38,38,0.08); border:1px solid rgba(220,38,38,0.2); color:#b91c1c; padding:4px 8px; border-radius:6px; margin:2px;">
+        <span class="att-chip-sn" style="background:#fee2e2; color:#b91c1c;">${sn}</span>
+        <span class="att-chip-name" style="font-size:11.5px; color:#b91c1c;">Unknown serial</span>
+      </div>`;
   });
 
   html += '</div>';
-  html += `<div class="att-preview-summary">
-    <span style="color:var(--green);">✅ ${res.matched.length} matched</span>
-    ${res.wrongClass.length ? '<span style="color:var(--orange);">⚠️ ' + res.wrongClass.length + ' wrong class</span>' : ''}
-    ${res.unknown.length   ? '<span style="color:var(--red);">❌ ' + res.unknown.length + ' unknown</span>' : ''}
-  </div>`;
+  html += `
+    <div class="att-preview-summary" style="margin-top:6px; font-size:11px;">
+      <span style="color:var(--green);">✅ ${res.matched.length} matched</span>
+      ${res.wrongClass.length ? '<span style="color:var(--orange);">⚠️ ' + res.wrongClass.length + ' wrong class</span>' : ''}
+      ${res.unknown.length   ? '<span style="color:var(--red);">❌ ' + res.unknown.length + ' unknown</span>' : ''}
+    </div>`;
   preview.innerHTML = html;
 }
 
 // ============================================================
-// SUBMIT ROUND
+// SUBMIT ATTENDANCE ROUNDS
 // ============================================================
-async function submitRound(round) {
-  const session = await DB.getOpenAttSession();
+async function submitRound(sessionId, round) {
+  const openSessions = await DB.getOpenAttSessions();
+  const session = openSessions.find(s => s.id === sessionId);
   if (!session) return;
-  const raw     = document.getElementById('r' + round + 'Input').value;
+
+  const raw     = document.getElementById(`r${round}Input_${sessionId}`).value;
   const serials = parseSerials(raw);
   if (!serials.length) return showToast('No valid serial numbers entered.', 'error');
 
@@ -147,41 +228,46 @@ async function submitRound(round) {
   if (round === 1) {
     const newSerials = res.matched.map(m => m.sn).filter(sn => !r1.includes(sn));
     await DB.updateAttSession(session.id, { round1Serials: [...r1, ...newSerials] });
-    showToast(newSerials.length + ' student(s) marked Present.', 'success');
+    await DB.addAdminLog(`Marked Present (Round 1) for ${newSerials.length} students in class ${session.class}`, 'attendance');
+    showToast(`${newSerials.length} student(s) marked Present.`, 'success');
   } else {
     const newSerials = res.matched
       .filter(m => !r1.includes(m.sn) && !r2.includes(m.sn))
       .map(m => m.sn);
     const skipped = res.matched.filter(m => r1.includes(m.sn)).length;
     await DB.updateAttSession(session.id, { round2Serials: [...r2, ...newSerials] });
-    let msg = newSerials.length + ' student(s) marked Late.';
-    if (skipped) msg += ' ' + skipped + ' skipped (already Present).';
+    await DB.addAdminLog(`Marked Late (Round 2) for ${newSerials.length} students in class ${session.class}`, 'attendance');
+    let msg = `${newSerials.length} student(s) marked Late.`;
+    if (skipped) msg += ` ${skipped} skipped (already Present).`;
     showToast(msg, skipped ? 'info' : 'success');
   }
 
-  document.getElementById('r' + round + 'Input').value = '';
-  document.getElementById('r' + round + 'Preview').innerHTML = '';
-  await renderOpenSession();
+  document.getElementById(`r${round}Input_${sessionId}`).value = '';
+  document.getElementById(`r${round}Preview_${sessionId}`).innerHTML = '';
+  await refresh();
 }
 
-function clearRoundInput(round) {
-  document.getElementById('r' + round + 'Input').value = '';
-  document.getElementById('r' + round + 'Preview').innerHTML = '';
+function clearRoundInput(sessionId, round) {
+  document.getElementById(`r${round}Input_${sessionId}`).value = '';
+  document.getElementById(`r${round}Preview_${sessionId}`).innerHTML = '';
 }
 
-function switchRound(round) {
-  document.getElementById('round1Panel').style.display = round === 1 ? 'block' : 'none';
-  document.getElementById('round2Panel').style.display = round === 2 ? 'block' : 'none';
-  document.getElementById('tabR1Btn').classList.toggle('active', round === 1);
-  document.getElementById('tabR2Btn').classList.toggle('active', round === 2);
+function switchRound(sessionId, round) {
+  document.getElementById(`round1Panel_${sessionId}`).style.display = round === 1 ? 'block' : 'none';
+  document.getElementById(`round2Panel_${sessionId}`).style.display = round === 2 ? 'block' : 'none';
+  document.getElementById(`tabR1Btn_${sessionId}`).classList.toggle('active', round === 1);
+  document.getElementById(`tabR2Btn_${sessionId}`).classList.toggle('active', round === 2);
 }
 
 // ============================================================
-// CLOSE SESSION → AUTO-MARK ABSENT
+// CLOSE SESSIONS & AUTO-ABSENT AUTO-COMPLETION
 // ============================================================
-async function showCloseConfirm() {
-  const session = await DB.getOpenAttSession();
+async function showCloseConfirm(sessionId) {
+  const openSessions = await DB.getOpenAttSessions();
+  const session = openSessions.find(s => s.id === sessionId);
   if (!session) return;
+
+  activeCloseSessionId = sessionId;
   const students = await getSessionStudents(session);
   const r1 = session.round1Serials || [];
   const r2 = session.round2Serials || [];
@@ -203,14 +289,18 @@ async function showCloseConfirm() {
       </div>
     </div>
     <p style="font-size:13px;color:var(--admin-text-muted);">
-      Closing this session will permanently record attendance for all ${students.length} students.
+      Closing this session will permanently save records for all ${students.length} students in <strong>${session.class}</strong>.
     </p>`;
   document.getElementById('closeConfirmModal').classList.add('active');
 }
 
 async function closeSession() {
-  const session = await DB.getOpenAttSession();
+  if (!activeCloseSessionId) return;
+  const sessionId = activeCloseSessionId;
+  const openSessions = await DB.getOpenAttSessions();
+  const session = openSessions.find(s => s.id === sessionId);
   if (!session) return;
+
   const students = await getSessionStudents(session);
   const r1 = session.round1Serials || [];
   const r2 = session.round2Serials || [];
@@ -237,8 +327,9 @@ async function closeSession() {
   await DB.updateAttSession(session.id, { status: 'closed', closedAt: new Date().toISOString() });
   await DB.addAdminLog(`Closed attendance session: ${session.date} (${session.class})`, 'attendance');
   closeModal('closeConfirmModal');
+  activeCloseSessionId = null;
   await refresh();
-  showToast('Session closed. ' + records.length + ' records saved.', 'success');
+  showToast(`Session closed. ${records.length} student records successfully saved.`, 'success');
 }
 
 async function getSessionStudents(session) {
@@ -248,15 +339,69 @@ async function getSessionStudents(session) {
 }
 
 // ============================================================
+// CREATE SESSIONS
+// ============================================================
+async function openNewSessionModal() {
+  document.getElementById('openSessionWarning').style.display = 'none';
+  document.getElementById('newSessionModal').classList.add('active');
+}
+
+async function createSession() {
+  const cls   = document.getElementById('nsClass').value;
+  const date  = document.getElementById('nsDate').value;
+  const topic = document.getElementById('nsTopic').value.trim();
+  const notes = document.getElementById('nsNotes').value.trim();
+  if (!cls)  return showToast('Please select a class.', 'error');
+  if (!date) return showToast('Please select a date.', 'error');
+  
+  const profile = await DB.getCurrentProfile();
+  const openSessions = await DB.getOpenAttSessions();
+  
+  // Check for duplicate in this tutor's sessions (or all if superadmin)
+  const relevantOpen = profile.role === 'superadmin' 
+    ? openSessions
+    : openSessions.filter(s => s.createdBy === profile.id);
+  const duplicate = relevantOpen.find(s => s.class === cls);
+  if (duplicate) return showToast(`A session is already active for ${cls}. Close it first.`, 'error');
+
+  const session = {
+    id: generateId(),
+    class: cls, date, topic, notes,
+    status: 'open',
+    createdBy: profile.id,
+    round1Serials: [],
+    round2Serials: [],
+    createdAt: new Date().toISOString(),
+  };
+  try {
+    await DB.addAttSession(session);
+  } catch (error) {
+    console.error('Failed to add attendance session:', error);
+    return showToast('Unable to start session. Please check your database schema and try again.', 'error');
+  }
+  await DB.addAdminLog(`Started attendance session: ${cls} on ${date} (Topic: "${topic || 'N/A'}")`, 'attendance');
+  closeModal('newSessionModal');
+  document.getElementById('nsTopic').value = '';
+  document.getElementById('nsNotes').value = '';
+  await refresh();
+  showToast(`Session started for ${cls} on ${date}`, 'success');
+}
+
+// ============================================================
 // SESSION HISTORY TABLE
 // ============================================================
 async function renderHistory() {
+  const profile = await DB.getCurrentProfile();
   const clsF  = document.getElementById('classFilterHistory').value;
   const stF   = document.getElementById('statusFilterHistory').value;
   
   let sessions = await DB.getAttSessions();
-  // Newest first
   sessions.sort((a,b) => b.createdAt.localeCompare(a.createdAt));
+
+  // Tutors see only their own sessions; superadmins see all
+  if (profile.role !== 'superadmin') {
+    sessions = sessions.filter(s => s.createdBy === profile.id);
+  }
 
   if (clsF) sessions = sessions.filter(s => s.class === clsF);
   if (stF)  sessions = sessions.filter(s => s.status === stF);
@@ -298,7 +443,7 @@ async function renderHistory() {
       <td>${total}</td>
       <td>
         <div style="display:flex;align-items:center;gap:8px;">
-          <div style="flex:1;height:6px;background:#f3f4f6;border-radius:3px;overflow:hidden;">
+          <div style="flex:1;height:6px;background:#f3f4f6;border-radius:3px;overflow:hidden; min-width:40px;">
             <div style="height:100%;width:${attPct}%;background:${attPct>=75?'#16a34a':attPct>=50?'#f59e0b':'#dc2626'};border-radius:3px;"></div>
           </div>
           <span style="font-size:12px;font-weight:700;">${attPct}%</span>
@@ -322,7 +467,7 @@ async function renderHistory() {
 }
 
 // ============================================================
-// VIEW SESSION
+// VIEW SESSION MODAL DETAILS
 // ============================================================
 async function viewSession(sessionId) {
   const sessions = await DB.getAttSessions();
@@ -374,44 +519,7 @@ async function viewSession(sessionId) {
 }
 
 // ============================================================
-// CREATE SESSION
-// ============================================================
-async function openNewSessionModal() {
-  const open = await DB.getOpenAttSession();
-  document.getElementById('openSessionWarning').style.display = open ? 'block' : 'none';
-  document.getElementById('newSessionModal').classList.add('active');
-}
-
-async function createSession() {
-  const cls   = document.getElementById('nsClass').value;
-  const date  = document.getElementById('nsDate').value;
-  const topic = document.getElementById('nsTopic').value.trim();
-  const notes = document.getElementById('nsNotes').value.trim();
-  if (!cls)  return showToast('Please select a class.', 'error');
-  if (!date) return showToast('Please select a date.', 'error');
-  
-  const openSession = await DB.getOpenAttSession();
-  if (openSession) return showToast('Close the open session first.', 'error');
-
-  const session = {
-    id: generateId(),
-    class: cls, date, topic, notes,
-    status: 'open',
-    round1Serials: [],
-    round2Serials: [],
-    createdAt: new Date().toISOString(),
-  };
-  await DB.addAttSession(session);
-  await DB.addAdminLog(`Started attendance session: ${cls} on ${date}`, 'attendance');
-  closeModal('newSessionModal');
-  document.getElementById('nsTopic').value = '';
-  document.getElementById('nsNotes').value = '';
-  await refresh();
-  showToast('Session started for ' + cls + ' on ' + date, 'success');
-}
-
-// ============================================================
-// DELETE SESSION
+// DELETE SESSIONS
 // ============================================================
 async function deleteSession(id) {
   const sessions = await DB.getAttSessions();
@@ -443,14 +551,21 @@ async function renderPendingEditsBanner() {
 }
 
 async function openEditReqModal(sessionId) {
+  const profile = await DB.getCurrentProfile();
   const sessions = await DB.getAttSessions();
-  const closedSessions = sessions.filter(s => s.status === 'closed');
+  let closedSessions = sessions.filter(s => s.status === 'closed');
+  
+  // Tutors see only their own closed sessions; superadmins see all
+  if (profile.role !== 'superadmin') {
+    closedSessions = closedSessions.filter(s => s.createdBy === profile.id);
+  }
+  
   const sel = document.getElementById('erSession');
   sel.innerHTML = closedSessions.map(s =>
     `<option value="${s.id}" ${s.id === sessionId ? 'selected' : ''}>${s.date} — ${s.class} — ${s.topic || 'No topic'}</option>`
   ).join('');
   document.getElementById('editReqModal').classList.add('active');
-}
+
 
 async function submitEditRequest() {
   const serial    = document.getElementById('erSerial').value.trim().toUpperCase();
@@ -460,11 +575,11 @@ async function submitEditRequest() {
   if (!serial || !sessionId || !reason) return showToast('All fields are required.', 'error');
 
   const student = await DB.findStudentBySN(serial);
-  if (!student) return showToast('Serial number "' + serial + '" not found.', 'error');
+  if (!student) return showToast(`Serial number "${serial}" not found.`, 'error');
 
   const records = await DB.getRecordsBySession(sessionId);
   const record = records.find(r => r.classSN === serial);
-  if (!record) return showToast('No attendance record found for ' + serial + ' in this session.', 'error');
+  if (!record) return showToast(`No attendance record found for ${serial} in this session.`, 'error');
 
   await DB.addAttEditReq({
     id: generateId(),
@@ -528,7 +643,7 @@ async function resolveEditReq(reqId, decision) {
   if (decision === 'approved') {
     await DB.updateAttRecord(req.recordId, { status: req.newStatus });
     await DB.addAdminLog(`Approved attendance edit request for student ${req.classSN} in session on date ${req.requestedAt.split('T')[0]}`, 'attendance');
-    showToast('Edit approved — record updated to "' + req.newStatus + '".', 'success');
+    showToast(`Edit approved — record updated to "${req.newStatus}".`, 'success');
   } else {
     await DB.addAdminLog(`Rejected attendance edit request for student ${req.classSN}`, 'attendance');
     showToast('Edit request rejected.', 'info');
@@ -538,7 +653,7 @@ async function resolveEditReq(reqId, decision) {
 }
 
 // ============================================================
-// EXPORT CSV
+// EXPORTS & IMPORTS
 // ============================================================
 async function exportSessionCSV(sessionId) {
   const sessions = await DB.getAttSessions();
@@ -568,9 +683,6 @@ async function exportAllCSV() {
   showToast('All attendance exported!', 'success');
 }
 
-// ============================================================
-// IMPORT ATTENDANCE CSV
-// ============================================================
 function openImportModal() {
   document.getElementById('importAttModal').classList.add('active');
 }
@@ -583,9 +695,8 @@ async function importAttendanceCSV() {
     const lines = e.target.result.split('\n').filter(l => l.trim());
     let imported = 0;
     
-    // We run the imports sequentially or gather all records to do them efficiently
     for (let i = 0; i < lines.length; i++) {
-      if (i === 0) continue; // skip header
+      if (i === 0) continue;
       const parts = lines[i].split(',').map(p => p.trim().replace(/^"|"$/g, ''));
       const [date, cls, serialsPresent, serialsLate, topic, notes] = parts;
       if (!date || !cls) continue;
@@ -604,7 +715,6 @@ async function importAttendanceCSV() {
       
       await DB.addAttSession(session);
 
-      // Build records
       const students = await getSessionStudents(session);
       const r1 = session.round1Serials, r2 = session.round2Serials;
       const records = students.map(s => ({
@@ -622,13 +732,13 @@ async function importAttendanceCSV() {
     closeModal('importAttModal');
     await DB.addAdminLog(`Imported ${imported} attendance sessions from CSV`, 'attendance');
     await refresh();
-    showToast(imported + ' session(s) imported!', 'success');
+    showToast(`${imported} session(s) imported!`, 'success');
   };
   reader.readAsText(file);
 }
 
 // ============================================================
-// MODAL HELPERS
+// MODAL CLAP HELPERS
 // ============================================================
 function closeModal(id) { document.getElementById(id).classList.remove('active'); }
 

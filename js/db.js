@@ -245,9 +245,11 @@ const DB = {
 
   async addAttSession(s) {
     let result = await supabase.from('att_sessions').insert(s);
-    if (result.error && isMissingColumnError(result.error) && s.importedFromCSV !== undefined) {
-      const { importedFromCSV, ...compatibleSession } = s;
-      result = await supabase.from('att_sessions').insert(compatibleSession);
+    if (result.error) {
+      const fallbackPayload = pick(s, ['id','class','date','topic','notes','status','round1Serials','round2Serials','createdBy','createdAt']);
+      if (result.error && isMissingColumnError(result.error)) {
+        result = await supabase.from('att_sessions').insert(fallbackPayload);
+      }
     }
     assertSupabaseOk(result, 'Failed to add attendance session');
   },
@@ -264,9 +266,17 @@ const DB = {
   },
 
   async getOpenAttSession() {
+    const sessions = await this.getOpenAttSessions();
+    return sessions[0] || null;
+  },
+
+  async getOpenAttSessions() {
     const { data } = await supabase
-      .from('att_sessions').select('*').eq('status', 'open').single();
-    return data || null;
+      .from('att_sessions')
+      .select('*')
+      .eq('status', 'open')
+      .order('createdAt', { ascending: false });
+    return data || [];
   },
 
   async setAttSessions(arr) {
@@ -375,13 +385,34 @@ const DB = {
   },
 
   async addAdminLog(action, category) {
-    // Insert the log entry
-    assertSupabaseOk(await supabase.from('admin_logs').insert({
+    let email = 'system@cbt.com';
+    let name = 'System';
+    try {
+      const profile = await this.getCurrentProfile();
+      if (profile) {
+        email = profile.email;
+        name = profile.name;
+      }
+    } catch (e) {
+      console.warn("Could not retrieve profile for log entry:", e);
+    }
+
+    const payload = {
       id: generateId(),
       action,
       category,
-      timestamp: new Date().toISOString()
-    }), 'Failed to add admin log');
+      timestamp: new Date().toISOString(),
+      admin_email: email,
+      admin_name: name
+    };
+
+    let result = await supabase.from('admin_logs').insert(payload);
+    if (result.error && isMissingColumnError(result.error)) {
+      const { admin_email, admin_name, ...compatiblePayload } = payload;
+      result = await supabase.from('admin_logs').insert(compatiblePayload);
+    }
+    assertSupabaseOk(result, 'Failed to add admin log');
+
     // Prune to keep only 500 most recent logs
     const { data: all } = await supabase
       .from('admin_logs').select('id').order('timestamp', { ascending: false });
@@ -389,6 +420,64 @@ const DB = {
       const toDelete = all.slice(500).map(r => r.id);
       assertSupabaseOk(await supabase.from('admin_logs').delete().in('id', toDelete), 'Failed to prune admin logs');
     }
+  },
+
+  // ── Admin Profiles (RBAC Permissions) ─────────────────────
+  async getAdminProfiles() {
+    const { data } = await supabase
+      .from('admin_profiles').select('*').order('createdAt', { ascending: true });
+    return data || [];
+  },
+
+  async updateAdminProfile(id, patch) {
+    assertSupabaseOk(
+      await supabase.from('admin_profiles').update(patch).eq('id', id),
+      'Failed to update admin profile'
+    );
+  },
+
+  async upsertAdminProfile(profile) {
+    assertSupabaseOk(
+      await supabase.from('admin_profiles').upsert(profile),
+      'Failed to upsert admin profile'
+    );
+  },
+
+  async getCurrentProfile() {
+    const session = await this.getSession();
+    if (!session) return null;
+    const { data } = await supabase
+      .from('admin_profiles')
+      .select('*')
+      .eq('id', session.user.id)
+      .maybeSingle();
+    
+    if (!data) {
+      const isFirstAdmin = session.user.email === 'admin@cbt.com';
+      const role = isFirstAdmin ? 'superadmin' : 'tutor';
+      const defaultProfile = {
+        id: session.user.id,
+        email: session.user.email,
+        name: session.user.email.split('@')[0],
+        role: role,
+        classAssignment: role === 'superadmin' ? null : 'Class A',
+        allowAttendance: true,
+        allowStudents: isFirstAdmin,
+        allowQuestions: isFirstAdmin,
+        allowResults: isFirstAdmin,
+        allowSessions: true,
+        allowSettings: isFirstAdmin,
+        allowViolations: isFirstAdmin,
+        allowLogs: isFirstAdmin
+      };
+      try {
+        await supabase.from('admin_profiles').insert(defaultProfile);
+      } catch (err) {
+        console.warn("Failed to auto-insert default profile:", err);
+      }
+      return defaultProfile;
+    }
+    return data;
   },
 
   async clearAdminLogs() {
@@ -513,12 +602,47 @@ async function triggerBackupDownload() {
 // ============================================================
 // ADMIN GUARD
 // ============================================================
+async function requirePermission(moduleKey) {
+  const session = await DB.getSession();
+  if (!session) {
+    window.location.href = 'admin-login.html';
+    throw new Error('Unauthorized access redirecting to login...');
+  }
+  
+  const profile = await DB.getCurrentProfile();
+  if (!profile) {
+    window.location.href = 'admin-login.html';
+    throw new Error('Unauthorized access redirecting to login...');
+  }
+
+  // Superadmins bypass all locks
+  if (profile.role === 'superadmin') return profile;
+
+  // Check specific column: allowAttendance, allowStudents, allowQuestions, etc.
+  const allowed = profile[`allow${moduleKey}`];
+  if (!allowed) {
+    const modules = ['Attendance', 'Students', 'Questions', 'Results', 'Sessions', 'Violations', 'Settings', 'Logs'];
+    let redirectPage = 'admin-login.html';
+    for (const m of modules) {
+      if (profile[`allow${m}`]) {
+        redirectPage = m === 'Attendance' ? 'admin-attendance.html' : `admin-${m.toLowerCase()}.html`;
+        break;
+      }
+    }
+    showToast(`Access Denied — '${moduleKey}' permission required!`, 'error');
+    window.location.href = redirectPage;
+    throw new Error(`Access Denied: '${moduleKey}' permission required.`);
+  }
+  return profile;
+}
+
 async function requireAdmin() {
   const session = await DB.getSession();
   if (!session) {
     window.location.href = 'admin-login.html';
     throw new Error('Unauthorized access redirecting to login...');
   }
+  return await DB.getCurrentProfile();
 }
 
 // ============================================================

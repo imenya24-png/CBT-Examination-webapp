@@ -93,6 +93,26 @@ CREATE TABLE IF NOT EXISTS exam_sessions (
 );
 
 -- ============================================================
+-- TABLE: admin_profiles (administrator and tutor permission profiles)
+-- ============================================================
+CREATE TABLE IF NOT EXISTS admin_profiles (
+  id                TEXT PRIMARY KEY,
+  email             TEXT NOT NULL,
+  name              TEXT NOT NULL,
+  role              TEXT NOT NULL DEFAULT 'tutor',
+  "classAssignment" TEXT DEFAULT 'Class A',
+  "allowAttendance" BOOLEAN DEFAULT TRUE,
+  "allowStudents"   BOOLEAN DEFAULT FALSE,
+  "allowQuestions"  BOOLEAN DEFAULT FALSE,
+  "allowResults"    BOOLEAN DEFAULT FALSE,
+  "allowSessions"   BOOLEAN DEFAULT FALSE,
+  "allowSettings"   BOOLEAN DEFAULT FALSE,
+  "allowViolations" BOOLEAN DEFAULT FALSE,
+  "allowLogs"       BOOLEAN DEFAULT FALSE,
+  "createdAt"       TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- ============================================================
 -- TABLE: att_sessions (attendance sessions)
 -- ============================================================
 CREATE TABLE IF NOT EXISTS att_sessions (
@@ -104,6 +124,7 @@ CREATE TABLE IF NOT EXISTS att_sessions (
   status          TEXT DEFAULT 'open',
   "round1Serials" JSONB DEFAULT '[]'::JSONB,
   "round2Serials" JSONB DEFAULT '[]'::JSONB,
+  "createdBy"     TEXT,
   "createdAt"     TIMESTAMPTZ DEFAULT NOW(),
   "closedAt"      TIMESTAMPTZ,
   "importedFromCSV" BOOLEAN DEFAULT FALSE
@@ -193,6 +214,7 @@ ALTER TABLE questions         ENABLE ROW LEVEL SECURITY;
 ALTER TABLE results           ENABLE ROW LEVEL SECURITY;
 ALTER TABLE violations        ENABLE ROW LEVEL SECURITY;
 ALTER TABLE exam_sessions     ENABLE ROW LEVEL SECURITY;
+ALTER TABLE admin_profiles     ENABLE ROW LEVEL SECURITY;
 ALTER TABLE att_sessions      ENABLE ROW LEVEL SECURITY;
 ALTER TABLE att_records       ENABLE ROW LEVEL SECURITY;
 ALTER TABLE att_edit_requests ENABLE ROW LEVEL SECURITY;
@@ -261,6 +283,13 @@ DROP POLICY IF EXISTS "attsess_read_anon" ON att_sessions;
 DROP POLICY IF EXISTS "attsess_write_auth" ON att_sessions;
 CREATE POLICY "attsess_read_anon"  ON att_sessions FOR SELECT USING (true);
 CREATE POLICY "attsess_write_auth" ON att_sessions FOR ALL    USING (auth.role() = 'authenticated');
+
+-- ── admin_profiles ──
+-- Authenticated admins can read and update tutor permissions
+DROP POLICY IF EXISTS "profiles_read_all" ON admin_profiles;
+DROP POLICY IF EXISTS "profiles_write_auth" ON admin_profiles;
+CREATE POLICY "profiles_read_all" ON admin_profiles FOR SELECT USING (true);
+CREATE POLICY "profiles_write_auth" ON admin_profiles FOR ALL    USING (auth.role() = 'authenticated');
 
 -- ── att_records ──
 -- Anonymous can INSERT (student marks themselves present)
