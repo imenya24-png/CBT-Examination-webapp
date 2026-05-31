@@ -36,7 +36,7 @@ async function renderViolations() {
     tab_switch:  { label: '🖥️ Tab Switch',        badge: 'badge-red' },
     visibility:  { label: '👁️ Visibility Change',  badge: 'badge-orange' },
     refresh:     { label: '↻ Page Refresh',         badge: 'badge-blue' },
-    right_click: { label: '🖱️ Right Click',         badge: 'badge-purple' },
+    right_click: { label: '🖱️ Right Click',         badge: 'badge-teal' },
     copy_paste:  { label: '📋 Copy / Paste',         badge: 'badge-gray' },
   };
 

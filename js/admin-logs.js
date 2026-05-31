@@ -24,7 +24,7 @@ async function renderLogs() {
   const categoryBadges = {
     system:     '<span class="badge badge-gray">⚙️ System</span>',
     students:   '<span class="badge badge-blue">👥 Students</span>',
-    questions:  '<span class="badge badge-purple">❓ Questions</span>',
+    questions:  '<span class="badge badge-teal">❓ Questions</span>',
     results:    '<span class="badge badge-green">📊 Results</span>',
     attendance: '<span class="badge badge-orange">📅 Attendance</span>'
   };

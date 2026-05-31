@@ -59,7 +59,7 @@ async function renderOpenSessions() {
             <div style="font-size:10px;font-weight:800;color:rgba(255,255,255,0.6);letter-spacing:1px;text-transform:uppercase;margin-bottom:4px;">Active Session</div>
             <div style="font-size:16px;font-weight:800;color:#fff;" id="title_${s.id}">${s.topic || 'Untitled Session'}</div>
             <div style="font-size:12px;color:rgba(255,255,255,0.7);margin-top:2px;">
-              <span class="badge ${s.class === 'Joint' ? 'badge-orange' : s.class === 'Class A' ? 'badge-blue' : 'badge-purple'}" style="font-size:11px; padding:2px 8px; margin-right:6px;">${s.class}</span>
+              <span class="badge ${s.class === 'Joint' ? 'badge-orange' : s.class === 'Class A' ? 'badge-blue' : 'badge-teal'}" style="font-size:11px; padding:2px 8px; margin-right:6px;">${s.class}</span>
               📅 ${s.date} ${s.notes ? '· ' + s.notes : ''}
             </div>
           </div>
@@ -435,7 +435,7 @@ async function renderHistory() {
 
     return `<tr>
       <td style="font-weight:600;white-space:nowrap;">${s.date}</td>
-      <td><span class="badge ${s.class === 'Joint' ? 'badge-orange' : s.class === 'Class A' ? 'badge-blue' : 'badge-purple'}">${s.class}</span></td>
+      <td><span class="badge ${s.class === 'Joint' ? 'badge-orange' : s.class === 'Class A' ? 'badge-blue' : 'badge-teal'}">${s.class}</span></td>
       <td style="font-size:13px;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${s.topic || '—'}</td>
       <td><strong style="color:var(--green);">${present}</strong></td>
       <td><strong style="color:#f59e0b;">${late}</strong></td>
@@ -565,7 +565,7 @@ async function openEditReqModal(sessionId) {
     `<option value="${s.id}" ${s.id === sessionId ? 'selected' : ''}>${s.date} — ${s.class} — ${s.topic || 'No topic'}</option>`
   ).join('');
   document.getElementById('editReqModal').classList.add('active');
-
+}
 
 async function submitEditRequest() {
   const serial    = document.getElementById('erSerial').value.trim().toUpperCase();

@@ -81,7 +81,7 @@ async function renderSessions() {
           </div>
         </div>
       </td>
-      <td><span class="badge badge-purple">${s.class || '—'}</span></td>
+      <td><span class="badge badge-teal">${s.class || '—'}</span></td>
       <td>
         <span class="badge ${isActive ? 'badge-green' : 'badge-gray'}">
           ${isActive ? '▶ Active' : '✓ Completed'}

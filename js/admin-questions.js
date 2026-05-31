@@ -7,7 +7,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 
 const TYPE_LABELS  = { mcq:'MCQ', truefalse:'TRUEFALSE', fill:'FILL', short:'SHORT', code:'CODE' };
-const TYPE_COLORS  = { mcq:'badge-blue', truefalse:'badge-green', fill:'badge-purple', short:'badge-orange', code:'badge-gray' };
+const TYPE_COLORS  = { mcq:'badge-blue', truefalse:'badge-green', fill:'badge-teal', short:'badge-orange', code:'badge-gray' };
 const LEVEL_COLORS = { easy:'badge-green', medium:'badge-orange', hard:'badge-red' };
 
 async function renderQuestions() {

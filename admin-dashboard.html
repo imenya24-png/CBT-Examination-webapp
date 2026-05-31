@@ -16,10 +16,10 @@
       <div class="admin-topbar-email" id="adminEmailDisplay">admin@cbt.com</div>
     </div>
     <div class="admin-topbar-actions">
-      <button class="btn btn-outline btn-sm" onclick="doBackup()">⬇️ Backup</button>
-      <button class="btn btn-outline btn-sm" onclick="doReset()" style="color:var(--red);border-color:var(--red)">🗑️ Reset System</button>
-      <button class="btn btn-danger btn-sm" id="examToggleBtn" onclick="toggleExam()">⏹ Stop Exam</button>
-      <button class="btn btn-outline btn-sm" onclick="doLogout()">→ Logout</button>
+      <button class="btn btn-outline btn-sm" onclick="doBackup()">Backup</button>
+      <button class="btn btn-outline btn-sm" onclick="doReset()" style="color:var(--red);border-color:var(--red)">Reset System</button>
+      <button class="btn btn-danger btn-sm" id="examToggleBtn" onclick="toggleExam()">Stop Exam</button>
+      <button class="btn btn-outline btn-sm" onclick="doLogout()">Logout</button>
     </div>
   </div>
 
@@ -40,13 +40,13 @@
         <div class="stat-card-value" id="statStudents">0</div>
         <div class="stat-card-label">Total Students</div>
       </div>
-      <div class="stat-card purple">
+      <div class="stat-card teal">
         <div class="stat-card-icon">❓</div>
         <div class="stat-card-value" id="statQuestions">0</div>
         <div class="stat-card-label">Questions</div>
       </div>
       <div class="stat-card green">
-        <div class="stat-card-icon">▶️</div>
+        <div class="stat-card-icon">▶</div>
         <div class="stat-card-value" id="statActive">0</div>
         <div class="stat-card-label">Active Sessions</div>
       </div>
@@ -56,7 +56,7 @@
         <div class="stat-card-label">Completed</div>
       </div>
       <div class="stat-card red">
-        <div class="stat-card-icon">⚠️</div>
+        <div class="stat-card-icon">⚠</div>
         <div class="stat-card-value" id="statViolations">0</div>
         <div class="stat-card-label">Violations</div>
       </div>
@@ -72,7 +72,7 @@
         </div>
       </div>
       <div class="nav-card" onclick="window.location.href='admin-questions.html'">
-        <div class="nav-card-icon purple">❓</div>
+        <div class="nav-card-icon teal">❓</div>
         <div>
           <div class="nav-card-title">Question Bank</div>
           <div class="nav-card-desc">Import and manage questions</div>
@@ -86,7 +86,7 @@
         </div>
       </div>
       <div class="nav-card" onclick="window.location.href='admin-settings.html'">
-        <div class="nav-card-icon gray">⚙️</div>
+        <div class="nav-card-icon gray">⚙</div>
         <div>
           <div class="nav-card-title">Exam Settings</div>
           <div class="nav-card-desc">Configure exam parameters</div>
@@ -95,26 +95,26 @@
     </div>
 
     <!-- NAV CARDS ROW 2 -->
-    <div class="nav-cards" style="grid-template-columns:repeat(4,1fr);">
+    <div class="nav-cards">
       <div class="nav-card" onclick="window.location.href='admin-violations.html'">
-        <div class="nav-card-icon red">⚠️</div>
+        <div class="nav-card-icon red">⚠</div>
         <div>
           <div class="nav-card-title">Violation Logs</div>
           <div class="nav-card-desc">Monitor student violations</div>
         </div>
       </div>
       <div class="nav-card" onclick="window.location.href='admin-sessions.html'">
-        <div class="nav-card-icon orange">👁️</div>
+        <div class="nav-card-icon orange">👁</div>
         <div>
           <div class="nav-card-title">Active Sessions</div>
           <div class="nav-card-desc">Monitor live exam sessions</div>
         </div>
       </div>
       <div class="nav-card" onclick="window.location.href='admin-attendance.html'">
-        <div class="nav-card-icon" style="background:#f0fdf4;color:#16a34a;">📋</div>
+        <div class="nav-card-icon green">📋</div>
         <div>
           <div class="nav-card-title">Attendance</div>
-          <div class="nav-card-desc">Take & manage class attendance</div>
+          <div class="nav-card-desc">Take &amp; manage class attendance</div>
         </div>
       </div>
       <div class="nav-card" onclick="window.location.href='admin-logs.html'">

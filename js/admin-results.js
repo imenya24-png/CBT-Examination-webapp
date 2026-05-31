@@ -67,7 +67,7 @@ async function renderResults() {
     return `
     <tr>
       <td><strong>${r.studentName || r.email}</strong><br><span style="font-size:12px;color:var(--admin-text-muted);">${r.email}</span></td>
-      <td><span class="badge badge-purple">${r.class || '—'}</span></td>
+      <td><span class="badge badge-teal">${r.class || '—'}</span></td>
       <td>${r.score} / ${r.total}</td>
       <td style="font-weight:700;color:${pass?'var(--green)':'var(--red)'};">${r.percentage}%</td>
       <td><span class="badge ${pass?'badge-green':'badge-red'}">${grade}</span></td>

@@ -116,7 +116,7 @@ function renderSessionBreakdown(allSessions, allStudents, allRecords) {
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;flex-wrap:wrap;gap:8px;">
           <div style="flex:1;">
             <span style="font-weight:700;color:var(--admin-text);font-size:14px;">${s.topic || 'Untitled Session'}</span>
-            <span class="badge ${s.class === 'Joint' ? 'badge-orange' : s.class === 'Class A' ? 'badge-blue' : 'badge-purple'}" style="margin-left:8px;">${s.class}</span>
+            <span class="badge ${s.class === 'Joint' ? 'badge-orange' : s.class === 'Class A' ? 'badge-blue' : 'badge-teal'}" style="margin-left:8px;">${s.class}</span>
           </div>
           <div style="font-size:13px;color:var(--admin-text-muted);font-weight:600;">${s.date}</div>
         </div>
@@ -234,7 +234,7 @@ function renderStudentTable() {
       <tr>
         <td style="font-family:monospace;font-weight:700;">${x.classSN || '—'}</td>
         <td><strong>${x.studentName}</strong></td>
-        <td><span class="badge badge-purple">${x.class}</span></td>
+        <td><span class="badge badge-teal">${x.class}</span></td>
         <td>${x.total}</td>
         <td><strong style="color:var(--green);">${x.present}</strong></td>
         <td><strong style="color:#f59e0b;">${x.late}</strong></td>

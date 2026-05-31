@@ -28,7 +28,7 @@ async function renderStudents() {
       <td style="color:var(--admin-text-muted);font-size:13px;">${s.email}</td>
       <td style="font-size:13px;">${s.phone || '—'}</td>
       <td style="font-size:13px;">${s.gender || '—'}</td>
-      <td><span class="badge badge-purple">${s.class || '—'}</span></td>
+      <td><span class="badge badge-teal">${s.class || '—'}</span></td>
       <td><span class="badge badge-blue" style="font-family:monospace;font-weight:800;">${s.classSN || '—'}</span></td>
       <td>
         <div style="display:flex;gap:6px;">
