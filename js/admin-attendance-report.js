@@ -7,7 +7,7 @@ let currentCachedStudents = [];
 let currentCachedRecords = [];
 
 document.addEventListener('DOMContentLoaded', async () => {
-  await requireAdmin();
+  await requirePermission('Attendance');
   
   // Set default date range to last 30 days
   const today = new Date();

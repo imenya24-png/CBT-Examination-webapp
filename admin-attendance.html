@@ -44,66 +44,8 @@
     <button class="btn btn-sm" onclick="openEditRequestsModal()" style="background:#fef3c7;color:#92400e;border:1.5px solid #fde68a;">Review Requests</button>
   </div>
 
-  <!-- OPEN SESSION PANEL -->
-  <div id="openSessionPanel" style="display:none;">
-    <div class="att-session-panel">
-      <div class="att-session-header">
-        <div>
-          <div style="font-size:11px;font-weight:700;color:rgba(255,255,255,0.6);letter-spacing:1px;text-transform:uppercase;margin-bottom:4px;">Active Session</div>
-          <div style="font-size:18px;font-weight:800;color:#fff;" id="openSessionTitle">—</div>
-          <div style="font-size:13px;color:rgba(255,255,255,0.6);margin-top:2px;" id="openSessionMeta">—</div>
-        </div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap;">
-          <span class="badge" style="background:rgba(255,255,255,0.15);color:#fff;font-size:13px;" id="openSessionR1Count">Round 1: 0 present</span>
-          <span class="badge" style="background:rgba(255,255,255,0.15);color:#fff;font-size:13px;" id="openSessionR2Count">Round 2: 0 late</span>
-        </div>
-      </div>
-
-      <!-- TABS -->
-      <div class="att-round-tabs">
-        <button class="att-round-tab active" id="tabR1Btn" onclick="switchRound(1)">
-          ✅ Round 1 — Present
-        </button>
-        <button class="att-round-tab" id="tabR2Btn" onclick="switchRound(2)">
-          🕐 Round 2 — Late
-        </button>
-      </div>
-
-      <!-- ROUND 1 -->
-      <div id="round1Panel">
-        <div style="font-size:13px;color:var(--admin-text-muted);margin-bottom:10px;">
-          Enter the class serial numbers of students who are <strong>present</strong>. Comma or space separated (e.g. <code style="background:#f3f4f6;padding:2px 6px;border-radius:4px;">A1, A3, B12</code>).
-        </div>
-        <textarea id="r1Input" class="att-serial-input" placeholder="A1, A3, A7, B2, B15..." oninput="livePreview(1)"></textarea>
-        <div id="r1Preview" class="att-preview"></div>
-        <div style="display:flex;gap:10px;margin-top:14px;">
-          <button class="btn btn-primary" onclick="submitRound(1)" style="flex:1;">✅ Mark as Present</button>
-          <button class="btn btn-outline" onclick="clearRoundInput(1)">Clear</button>
-        </div>
-      </div>
-
-      <!-- ROUND 2 -->
-      <div id="round2Panel" style="display:none;">
-        <div style="font-size:13px;color:var(--admin-text-muted);margin-bottom:10px;">
-          Enter the class serial numbers of students who arrived <strong>late</strong>. Students already marked Present will be skipped.
-        </div>
-        <textarea id="r2Input" class="att-serial-input" placeholder="B4, B9, A21..." oninput="livePreview(2)"></textarea>
-        <div id="r2Preview" class="att-preview"></div>
-        <div style="display:flex;gap:10px;margin-top:14px;">
-          <button class="btn" onclick="submitRound(2)" style="flex:1;background:#f59e0b;color:#fff;">🕐 Mark as Late</button>
-          <button class="btn btn-outline" onclick="clearRoundInput(2)">Clear</button>
-        </div>
-      </div>
-
-      <!-- CLOSE SESSION -->
-      <div style="border-top:1.5px solid #e5e7eb;padding-top:18px;margin-top:18px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
-        <div style="font-size:13px;color:var(--admin-text-muted);">
-          Closing the session will <strong>auto-mark all remaining students as Absent</strong>.
-        </div>
-        <button class="btn btn-danger" onclick="showCloseConfirm()">🔒 Close Session &amp; Auto-mark Absent</button>
-      </div>
-    </div>
-  </div>
+  <!-- ACTIVE SESSIONS DYNAMIC GRID -->
+  <div id="activeSessionsGrid" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(460px, 1fr)); gap: 24px; margin-bottom: 28px;"></div>
 
   <!-- SESSION HISTORY -->
   <div class="card" style="padding:0;overflow:hidden;">
@@ -269,6 +211,7 @@
 <div id="toast-container"></div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="js/supabase-config.js"></script><script src="js/db.js"></script>
 <script src="js/config.js"></script>
+<script src="js/admin-sidebar.js"></script>
 <script src="js/admin-attendance.js"></script>
 </body>
 </html>

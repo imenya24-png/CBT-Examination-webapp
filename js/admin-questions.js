@@ -2,7 +2,7 @@
 let parsedQuestions = [];
 
 document.addEventListener('DOMContentLoaded', async () => {
-  await requireAdmin();
+  await requirePermission('Questions');
   await renderQuestions();
 });
 

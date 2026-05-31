@@ -1,6 +1,6 @@
 // Admin Violations JS — Supabase async version
 document.addEventListener('DOMContentLoaded', async () => {
-  await requireAdmin();
+  await requirePermission('Violations');
   await renderViolations();
 });
 

@@ -194,12 +194,49 @@
     </div>
   </div>
 
+  <!-- Section 7: Tutor & Permissions Management -->
+  <div class="settings-section" id="tutorPermissionsSection">
+    <div class="settings-section-header">
+      <span class="settings-section-icon">👥</span> Tutor &amp; Permission Settings
+    </div>
+    <div class="settings-description" style="margin-bottom:16px; color:var(--admin-text-muted); font-size:13px; line-height:1.7;">
+      Superadmins can review all tutor profiles and toggle access to specific CBT modules instantly. Changes are saved in real time and reflected in the sidebar for the affected account.
+    </div>
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:18px;">
+      <div style="font-size:13px;color:var(--admin-text-muted);">Toggle permissions for each administrator or tutor account below.</div>
+      <button class="btn btn-sm btn-outline" onclick="loadAdminProfiles()">Refresh Tutors</button>
+    </div>
+    <div class="table-wrap" style="overflow-x:auto;">
+      <table class="permission-table">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Email</th>
+            <th>Role</th>
+            <th>Attendance</th>
+            <th>Students</th>
+            <th>Questions</th>
+            <th>Results</th>
+            <th>Sessions</th>
+            <th>Violations</th>
+            <th>Settings</th>
+            <th>Logs</th>
+          </tr>
+        </thead>
+        <tbody id="adminProfilesTable">
+          <tr><td colspan="11"><div class="empty-state"><p>Loading tutor access controls…</p></div></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
 </div>
 </div>
 
 <div id="toast-container"></div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="js/supabase-config.js"></script><script src="js/db.js"></script>
 <script src="js/config.js"></script>
+<script src="js/admin-sidebar.js"></script>
 <script src="js/admin-settings.js"></script>
 </body>
 </html>

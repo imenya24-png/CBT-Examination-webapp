@@ -1,6 +1,6 @@
 // Admin Results JS — Supabase async version
 document.addEventListener('DOMContentLoaded', async () => {
-  await requireAdmin();
+  await requirePermission('Results');
   await renderResults();
 });
 

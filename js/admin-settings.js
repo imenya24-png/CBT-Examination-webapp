@@ -1,8 +1,70 @@
 // Admin Settings JS — Supabase async version
 document.addEventListener('DOMContentLoaded', async () => {
-  await requireAdmin();
+  await requirePermission('Settings');
   await loadSettings();
+  await loadAdminProfiles();
 });
+
+async function loadAdminProfiles() {
+  const currentProfile = await DB.getCurrentProfile();
+  const section = document.getElementById('tutorPermissionsSection');
+  if (section && currentProfile?.role !== 'superadmin') {
+    section.innerHTML = '<div class="empty-state" style="padding:22px;text-align:center;">Only Superadmins can manage tutor permissions.</div>';
+    return;
+  }
+
+  const profiles = await DB.getAdminProfiles();
+  renderAdminProfiles(profiles);
+}
+
+function renderAdminProfiles(profiles) {
+  const tbody = document.getElementById('adminProfilesTable');
+  if (!tbody) return;
+
+  if (!profiles.length) {
+    tbody.innerHTML = '<tr><td colspan="11"><div class="empty-state"><p>No tutors or admin profiles found.</p></div></td></tr>';
+    return;
+  }
+
+  const rows = profiles.sort((a,b) => (a.role === 'superadmin' ? -1 : 1) - (b.role === 'superadmin' ? -1 : 1));
+  tbody.innerHTML = rows.map(profile => {
+    const isSuper = profile.role === 'superadmin';
+    const toggles = ['Attendance','Students','Questions','Results','Sessions','Violations','Settings','Logs']
+      .map(feature => {
+        const key = `allow${feature}`;
+        const checked = profile[key] ? 'checked' : '';
+        const disabled = isSuper ? 'disabled' : '';
+        return `<td class="permission-cell"><label class="toggle-switch small"><input type="checkbox" ${checked} ${disabled} onchange="toggleProfilePermission('${profile.id}','${key}', this.checked)"/><span class="toggle-slider"></span></label></td>`;
+      }).join('');
+
+    return `
+      <tr>
+        <td>${profile.name}</td>
+        <td>${profile.email}</td>
+        <td><span class="profile-role-badge ${isSuper ? 'role-superadmin' : 'role-tutor'}">${profile.role}</span></td>
+        ${toggles}
+      </tr>`;
+  }).join('');
+}
+
+async function toggleProfilePermission(profileId, permissionKey, isEnabled) {
+  try {
+    await DB.updateAdminProfile(profileId, { [permissionKey]: isEnabled });
+    await DB.addAdminLog(`Updated ${permissionKey} for profile ${profileId}`, 'settings');
+    showToast('Permission updated successfully.', 'success');
+    await loadAdminProfiles();
+
+    const current = await DB.getCurrentProfile();
+    if (current.id === profileId && permissionKey === 'allowSettings' && !isEnabled) {
+      showToast('Settings access removed. Redirecting to permitted page...', 'error');
+      window.location.href = 'admin-dashboard.html';
+      return;
+    }
+  } catch (err) {
+    console.error('Failed to update profile permission:', err);
+    showToast('Unable to update permission. Please try again.', 'error');
+  }
+}
 
 async function loadSettings() {
   const cfg = await DB.getConfig();

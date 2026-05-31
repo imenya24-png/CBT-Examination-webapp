@@ -1,8 +1,24 @@
 // ===== ADMIN AUTH — Supabase Auth =====
 document.addEventListener('DOMContentLoaded', async () => {
-  // If already logged in, redirect to dashboard
   const session = await DB.getSession();
-  if (session) { window.location.href = 'admin-dashboard.html'; return; }
+  if (session) {
+    let redirectPage = 'admin-dashboard.html';
+    try {
+      const profile = await DB.getCurrentProfile();
+      const isSuperadmin = profile?.role === 'superadmin';
+      const hasMultipleModules = isSuperadmin || 
+        ['Students', 'Questions', 'Results', 'Sessions', 'Violations', 'Settings', 'Logs']
+          .some(m => profile?.[`allow${m}`] === true);
+      
+      if (!hasMultipleModules && profile?.allowAttendance) {
+        redirectPage = 'admin-attendance.html';
+      }
+    } catch (e) {
+      console.warn("Could not determine role redirect, defaulting to dashboard:", e);
+    }
+    window.location.href = redirectPage;
+    return;
+  }
 
   document.getElementById('adminPass').addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
 });
@@ -41,7 +57,21 @@ async function doLogin() {
       btn.disabled = false;
       setTimeout(() => errEl.style.display = 'none', 6000);
     } else {
-      window.location.href = 'admin-dashboard.html';
+      let redirectPage = 'admin-dashboard.html';
+      try {
+        const profile = await DB.getCurrentProfile();
+        const isSuperadmin = profile?.role === 'superadmin';
+        const hasMultipleModules = isSuperadmin || 
+          ['Students', 'Questions', 'Results', 'Sessions', 'Violations', 'Settings', 'Logs']
+            .some(m => profile?.[`allow${m}`] === true);
+        
+        if (!hasMultipleModules && profile?.allowAttendance) {
+          redirectPage = 'admin-attendance.html';
+        }
+      } catch (e) {
+        console.warn("Could not determine role redirect on login:", e);
+      }
+      window.location.href = redirectPage;
     }
   } catch (err) {
     console.error("Login error:", err);

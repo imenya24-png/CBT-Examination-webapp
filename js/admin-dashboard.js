@@ -2,7 +2,17 @@
 let realtimeChannel = null;
 
 document.addEventListener('DOMContentLoaded', async () => {
-  await requireAdmin();
+  const profile = await requireAdmin();
+  const isSuperadmin = profile?.role === 'superadmin';
+  const hasMultipleModules = isSuperadmin || 
+    ['Students', 'Questions', 'Results', 'Sessions', 'Violations', 'Settings', 'Logs']
+      .some(m => profile?.[`allow${m}`] === true);
+  
+  if (!hasMultipleModules && profile?.allowAttendance) {
+    window.location.href = 'admin-attendance.html';
+    return;
+  }
+
   await loadDashboard();
 
   // Real-time live student monitoring via Supabase subscriptions

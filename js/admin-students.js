@@ -1,6 +1,6 @@
 // Admin Students JS — Supabase async version
 document.addEventListener('DOMContentLoaded', async () => {
-  await requireAdmin();
+  await requirePermission('Students');
   await renderStudents();
 });
 

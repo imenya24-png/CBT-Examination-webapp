@@ -1,6 +1,6 @@
 // Admin Sessions JS — Supabase async version with real-time updates
 document.addEventListener('DOMContentLoaded', async () => {
-  await requireAdmin();
+  await requirePermission('Sessions');
   await renderSessions();
 
   // Real-time updates via Supabase subscription
