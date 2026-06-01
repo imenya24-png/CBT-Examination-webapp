@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Manage Students — SecureCBT</title>
+  <link rel="stylesheet" crossorigin href="/assets/main-CCBJMKLo.css">
+  <link rel="stylesheet" crossorigin href="/assets/admin-vGVxAY1I.css">
+</head>
+<body class="admin-body">
+<div class="admin-layout">
+<div class="admin-container">
+
+  <!-- PAGE HEADER -->
+  <div class="page-header">
+    <div class="page-header-left">
+      <button class="back-btn" onclick="history.back()">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+      </button>
+      <div>
+        <div class="page-title">Manage Students</div>
+        <div class="page-subtitle" id="studentCountLabel">0 total students</div>
+      </div>
+    </div>
+    <div class="page-actions">
+      <button class="btn btn-outline btn-sm" onclick="exportStudentsCSV()">⬇️ Export CSV</button>
+      <button class="btn btn-outline btn-sm" onclick="openImportModal()">⬆️ Import CSV</button>
+      <button class="btn btn-primary btn-sm" onclick="openAddModal()">+ Add Student</button>
+      <button class="btn btn-sm" onclick="wipeAll()" style="background:#fee2e2;color:var(--red);border:1.5px solid #fecaca;">🗑️ Wipe All Data</button>
+    </div>
+  </div>
+
+  <!-- FILTER BAR -->
+  <div class="card" style="margin-bottom:20px;padding:16px;">
+    <div class="filter-bar" style="margin-bottom:0;">
+      <div class="search-wrap" style="flex:1;">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input class="search-input" id="searchInput" placeholder="Search by name or email..." oninput="renderStudents()"/>
+      </div>
+      <select class="filter-select" id="classFilter" onchange="renderStudents()">
+        <option value="">All Classes</option>
+        <option>Class A</option>
+        <option>Class B</option>
+        <option>Class C</option>
+      </select>
+      <select class="filter-select" id="genderFilter" onchange="renderStudents()">
+        <option value="">All Genders</option>
+        <option>Male</option>
+        <option>Female</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- TABLE -->
+  <div class="card" style="padding:0;overflow:hidden;">
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Name</th><th>Email</th><th>Phone</th><th>Gender</th><th>Class</th><th>Serial No.</th><th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="studentTableBody">
+          <tr><td colspan="6"><div class="empty-state"><p>No students found.</p></div></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+</div>
+
+<!-- ADD STUDENT MODAL -->
+<div class="modal-overlay" id="addModal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">Add Student</div>
+      <button class="modal-close" onclick="closeModal('addModal')">×</button>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Full Name *</label>
+      <input class="form-input" id="newName" placeholder="e.g. John Doe"/>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Email Address *</label>
+      <input class="form-input" id="newEmail" type="email" placeholder="e.g. john@example.com"/>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Phone Number</label>
+      <input class="form-input" id="newPhone" placeholder="e.g. 08012345678"/>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+      <div class="form-group">
+        <label class="form-label">Gender</label>
+        <select class="form-select" id="newGender">
+          <option value="">Select</option>
+          <option>Male</option>
+          <option>Female</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Class</label>
+        <select class="form-select" id="newClass">
+          <option value="">Select</option>
+          <option>Class A</option>
+          <option>Class B</option>
+          <option>Class C</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Class Serial No. <span style="font-size:11px;color:var(--admin-text-muted);font-weight:400;">(e.g. A1, B23)</span></label>
+      <input class="form-input" id="newClassSN" placeholder="e.g. A12" style="font-family:monospace;font-weight:700;"/>
+    </div>
+    <button class="btn btn-primary w-full" onclick="addStudent()">Add Student</button>
+  </div>
+</div>
+
+<!-- IMPORT CSV MODAL -->
+<div class="modal-overlay" id="importModal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">Import Students (CSV)</div>
+      <button class="modal-close" onclick="closeModal('importModal')">×</button>
+    </div>
+    <p style="font-size:13px;color:var(--admin-text-muted);margin-bottom:16px;">CSV columns: <strong>name, email, phone, gender, class</strong></p>
+    <div class="form-group">
+      <label class="form-label">Upload CSV File</label>
+      <input type="file" accept=".csv" id="csvFile" class="form-input" style="padding:8px;"/>
+    </div>
+    <button class="btn btn-primary w-full" onclick="importCSV()">Import Students</button>
+  </div>
+</div>
+
+<!-- EDIT STUDENT MODAL -->
+<div class="modal-overlay" id="editModal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">✏️ Edit Student</div>
+      <button class="modal-close" onclick="closeModal('editModal')">×</button>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Full Name *</label>
+      <input class="form-input" id="editName" placeholder="e.g. John Doe"/>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Email Address *</label>
+      <input class="form-input" id="editEmail" type="email" placeholder="e.g. john@example.com"/>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Phone Number</label>
+      <input class="form-input" id="editPhone" placeholder="e.g. 08012345678"/>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+      <div class="form-group">
+        <label class="form-label">Gender</label>
+        <select class="form-select" id="editGender">
+          <option value="">Select</option>
+          <option>Male</option>
+          <option>Female</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Class</label>
+        <select class="form-select" id="editClass">
+          <option value="">Select</option>
+          <option>Class A</option>
+          <option>Class B</option>
+          <option>Class C</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Class Serial No. <span style="font-size:11px;color:var(--admin-text-muted);font-weight:400;">(e.g. A1, B23)</span></label>
+      <input class="form-input" id="editClassSN" placeholder="e.g. A12" style="font-family:monospace;font-weight:700;"/>
+    </div>
+    <button class="btn btn-primary w-full" onclick="saveStudent()">Save Changes</button>
+  </div>
+</div>
+
+<div id="toast-container"></div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="js/supabase-config.js"></script><script src="js/db.js"></script>
+<script src="js/config.js"></script>
+<script src="js/admin-sidebar.js"></script>
+<script src="js/admin-students.js"></script>
+</body>
+</html>

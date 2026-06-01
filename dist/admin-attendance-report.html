@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Attendance Reports — SecureCBT</title>
+  <link rel="stylesheet" crossorigin href="/assets/main-CCBJMKLo.css">
+  <link rel="stylesheet" crossorigin href="/assets/admin-vGVxAY1I.css">
+</head>
+<body class="admin-body">
+<div class="admin-layout">
+<div class="admin-container">
+
+  <div class="page-header">
+    <div class="page-header-left">
+      <button class="back-btn" onclick="window.location.href='admin-attendance.html'">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+        Attendance
+      </button>
+      <div>
+        <div class="page-title">Attendance Reports</div>
+        <div class="page-subtitle">Analytics and per-student breakdown</div>
+      </div>
+    </div>
+    <div class="page-actions">
+      <select class="filter-select" id="classFilter" onchange="renderAll()">
+        <option value="">All Classes</option>
+        <option value="Class A">Class A</option>
+        <option value="Class B">Class B</option>
+      </select>
+      <input type="date" class="filter-select" id="dateFrom" onchange="renderAll()" style="min-width:130px;"/>
+      <input type="date" class="filter-select" id="dateTo"   onchange="renderAll()" style="min-width:130px;"/>
+      <button class="btn btn-primary btn-sm" onclick="exportSummaryCSV()">⬇️ Export Summary</button>
+    </div>
+  </div>
+
+  <!-- SUMMARY STAT CARDS -->
+  <div class="results-stat-cards" style="grid-template-columns:repeat(4,1fr);">
+    <div class="results-stat">
+      <div class="results-stat-icon">📅</div>
+      <div class="results-stat-value" id="rs-sessions">0</div>
+      <div class="results-stat-label">Total Sessions</div>
+    </div>
+    <div class="results-stat">
+      <div class="results-stat-icon" style="color:var(--green);">✅</div>
+      <div class="results-stat-value" id="rs-present">0%</div>
+      <div class="results-stat-label">Avg Attendance %</div>
+    </div>
+    <div class="results-stat">
+      <div class="results-stat-icon" style="color:#f59e0b;">🕐</div>
+      <div class="results-stat-value" id="rs-late">0%</div>
+      <div class="results-stat-label">Avg Lateness %</div>
+    </div>
+    <div class="results-stat">
+      <div class="results-stat-icon" style="color:var(--red);">❌</div>
+      <div class="results-stat-value" id="rs-absent">0%</div>
+      <div class="results-stat-label">Avg Absence %</div>
+    </div>
+  </div>
+
+  <!-- TABS -->
+  <div class="tabs" style="margin-bottom:24px;">
+    <button class="tab-btn active" id="tab-overview"  onclick="switchTab('overview')">📊 Session Overview</button>
+    <button class="tab-btn"        id="tab-students"  onclick="switchTab('students')">👥 Per-Student Report</button>
+    <button class="tab-btn"        id="tab-compare"   onclick="switchTab('compare')">⚖️ Class Comparison</button>
+  </div>
+
+  <!-- OVERVIEW TAB -->
+  <div id="panel-overview">
+    <div class="card" style="padding:0;overflow:hidden;">
+      <div style="padding:18px 20px;font-size:15px;font-weight:700;border-bottom:1.5px solid var(--admin-border);">
+        Session Breakdown
+      </div>
+      <div id="sessionBreakdownList" style="padding:8px 0;"></div>
+    </div>
+  </div>
+
+  <!-- PER-STUDENT TAB -->
+  <div id="panel-students" style="display:none;">
+    <div class="card" style="margin-bottom:20px;padding:14px;">
+      <div class="filter-bar" style="margin-bottom:0;">
+        <div class="search-wrap" style="flex:1;">
+          <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input class="search-input" id="studentSearch" placeholder="Search by name, email or serial..." oninput="renderStudentTable()"/>
+        </div>
+        <select class="filter-select" id="standingFilter" onchange="renderStudentTable()">
+          <option value="">All Standing</option>
+          <option value="good">🟢 Good (≥75%)</option>
+          <option value="risk">🟡 At Risk (50–74%)</option>
+          <option value="poor">🔴 Poor (&lt;50%)</option>
+        </select>
+      </div>
+    </div>
+    <div class="card" style="padding:0;overflow:hidden;">
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th style="cursor:pointer;" onclick="sortBy('classSN')">S/N ↕</th>
+              <th style="cursor:pointer;" onclick="sortBy('studentName')">Name ↕</th>
+              <th>Class</th>
+              <th>Sessions</th>
+              <th style="color:var(--green);">Present</th>
+              <th style="color:#f59e0b;">Late</th>
+              <th style="color:var(--red);">Absent</th>
+              <th style="cursor:pointer;" onclick="sortBy('pct')">Attendance % ↕</th>
+              <th>Lateness %</th>
+              <th>Absence %</th>
+              <th>Standing</th>
+              <th>Details</th>
+            </tr>
+          </thead>
+          <tbody id="studentReportBody">
+            <tr><td colspan="12"><div class="empty-state"><p>No data yet.</p></div></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- CLASS COMPARISON TAB -->
+  <div id="panel-compare" style="display:none;">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;" id="compareGrid">
+      <div class="card" id="compareA"><div class="empty-state"><p>No Class A data</p></div></div>
+      <div class="card" id="compareB"><div class="empty-state"><p>No Class B data</p></div></div>
+    </div>
+  </div>
+
+</div>
+</div>
+
+<!-- STUDENT ATTENDANCE MODAL -->
+<div class="modal-overlay" id="studentAttModal">
+  <div class="modal" style="max-width:620px;">
+    <div class="modal-header">
+      <div class="modal-title" id="studentAttModalTitle">Student Attendance</div>
+      <button class="modal-close" onclick="document.getElementById('studentAttModal').classList.remove('active')">×</button>
+    </div>
+    <div id="studentAttModalContent"></div>
+  </div>
+</div>
+
+<div id="toast-container"></div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="js/supabase-config.js"></script><script src="js/db.js"></script>
+<script src="js/config.js"></script>
+<script src="js/admin-sidebar.js"></script>
+<script src="js/admin-attendance-report.js"></script>
+</body>
+</html>

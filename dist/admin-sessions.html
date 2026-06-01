@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Active Sessions — SecureCBT</title>
+  <link rel="stylesheet" crossorigin href="/assets/main-CCBJMKLo.css">
+  <link rel="stylesheet" crossorigin href="/assets/admin-vGVxAY1I.css">
+</head>
+<body class="admin-body">
+<div class="admin-layout">
+<div class="admin-container">
+
+  <div class="page-header">
+    <div class="page-header-left">
+      <button class="back-btn" onclick="window.location.href='admin-dashboard.html'">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+        Dashboard
+      </button>
+      <div>
+        <div class="page-title">Active Sessions</div>
+        <div class="page-subtitle" id="sessionSubtitle">Live exam session monitor</div>
+      </div>
+    </div>
+    <div class="page-actions">
+      <button class="btn btn-outline btn-sm" onclick="renderSessions()">↻ Refresh</button>
+    </div>
+  </div>
+
+  <!-- STAT CARDS -->
+  <div class="session-stat-cards">
+    <div class="session-stat green">
+      <div class="session-stat-top">
+        <span class="session-stat-icon">▶️</span>
+        <span class="session-stat-value" id="ss-active">0</span>
+      </div>
+      <div class="session-stat-label">Currently Active</div>
+    </div>
+    <div class="session-stat blue">
+      <div class="session-stat-top">
+        <span class="session-stat-icon">✅</span>
+        <span class="session-stat-value" id="ss-completed">0</span>
+      </div>
+      <div class="session-stat-label">Completed</div>
+    </div>
+    <div class="session-stat red">
+      <div class="session-stat-top">
+        <span class="session-stat-icon">⚠️</span>
+        <span class="session-stat-value" id="ss-violations">0</span>
+      </div>
+      <div class="session-stat-label">Total Violations</div>
+    </div>
+  </div>
+
+  <!-- FILTER -->
+  <div class="card" style="margin-bottom:20px;padding:16px;">
+    <div class="filter-bar" style="margin-bottom:0;">
+      <div class="search-wrap" style="flex:1;">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input class="search-input" id="searchInput" placeholder="Search by name or email..." oninput="renderSessions()"/>
+      </div>
+      <select class="filter-select" id="statusFilter" onchange="renderSessions()">
+        <option value="">All Statuses</option>
+        <option value="active">Active</option>
+        <option value="completed">Completed</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- TABLE -->
+  <div class="card" style="padding:0;overflow:hidden;">
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Student</th>
+            <th>Class</th>
+            <th>Status</th>
+            <th>Started At</th>
+            <th>Last Seen</th>
+            <th>Violations</th>
+          </tr>
+        </thead>
+        <tbody id="sessionTableBody">
+          <tr><td colspan="6"><div class="empty-state"><p>No sessions found.</p></div></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+</div>
+
+<div id="toast-container"></div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="js/supabase-config.js"></script><script src="js/db.js"></script>
+<script src="js/config.js"></script>
+<script src="js/admin-sidebar.js"></script>
+<script src="js/admin-sessions.js"></script>
+</body>
+</html>

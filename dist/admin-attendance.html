@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Attendance — SecureCBT</title>
+  <meta name="description" content="Take and manage class attendance for SecureCBT students."/>
+  <link rel="stylesheet" crossorigin href="/assets/main-CCBJMKLo.css">
+  <link rel="stylesheet" crossorigin href="/assets/admin-vGVxAY1I.css">
+</head>
+<body class="admin-body">
+<div class="admin-layout">
+<div class="admin-container">
+
+  <!-- PAGE HEADER -->
+  <div class="page-header">
+    <div class="page-header-left">
+      <button class="back-btn" onclick="window.location.href='admin-dashboard.html'">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+        Dashboard
+      </button>
+      <div>
+        <div class="page-title">Attendance</div>
+        <div class="page-subtitle" id="attSubtitle">Manage class attendance sessions</div>
+      </div>
+    </div>
+    <div class="page-actions">
+      <button class="btn btn-outline btn-sm" onclick="openImportModal()">⬆️ Import CSV</button>
+      <button class="btn btn-outline btn-sm" onclick="exportAllCSV()">⬇️ Export All CSV</button>
+      <button class="btn btn-outline btn-sm" onclick="window.location.href='admin-attendance-report.html'">📊 Reports</button>
+      <button class="btn btn-primary btn-sm" id="newSessionBtn" onclick="openNewSessionModal()">+ New Session</button>
+    </div>
+  </div>
+
+  <!-- PENDING EDIT REQUESTS BANNER -->
+  <div id="pendingEditsBanner" style="display:none;background:#fffbeb;border:1.5px solid #fde68a;border-radius:12px;padding:14px 20px;margin-bottom:20px;display:none;align-items:center;justify-content:space-between;">
+    <div style="display:flex;align-items:center;gap:10px;">
+      <span style="font-size:18px;">✏️</span>
+      <div>
+        <div style="font-size:14px;font-weight:700;color:#92400e;" id="pendingEditsText">Pending Edit Requests</div>
+        <div style="font-size:12px;color:#b45309;">Students have requested corrections to their attendance records.</div>
+      </div>
+    </div>
+    <button class="btn btn-sm" onclick="openEditRequestsModal()" style="background:#fef3c7;color:#92400e;border:1.5px solid #fde68a;">Review Requests</button>
+  </div>
+
+  <!-- ACTIVE SESSIONS DYNAMIC GRID -->
+  <div id="activeSessionsGrid" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(460px, 1fr)); gap: 24px; margin-bottom: 28px;"></div>
+
+  <!-- SESSION HISTORY -->
+  <div class="card" style="padding:0;overflow:hidden;">
+    <div style="padding:18px 20px 0;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
+      <div style="font-size:15px;font-weight:700;color:var(--admin-text);">📋 Session History</div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;">
+        <select class="filter-select" id="classFilterHistory" onchange="renderHistory()" style="min-width:120px;">
+          <option value="">All Classes</option>
+          <option>Class A</option>
+          <option>Class B</option>
+          <option value="Joint">Joint</option>
+        </select>
+        <select class="filter-select" id="statusFilterHistory" onchange="renderHistory()" style="min-width:110px;">
+          <option value="">All Status</option>
+          <option value="open">Open</option>
+          <option value="closed">Closed</option>
+        </select>
+      </div>
+    </div>
+    <div class="table-wrap" style="margin-top:12px;">
+      <table>
+        <thead>
+          <tr>
+            <th>Date</th><th>Class</th><th>Topic</th>
+            <th style="color:var(--green);">Present</th>
+            <th style="color:#f59e0b;">Late</th>
+            <th style="color:var(--red);">Absent</th>
+            <th>Total</th><th>Attendance %</th><th>Status</th><th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="historyTableBody">
+          <tr><td colspan="10"><div class="empty-state"><p>No sessions yet.</p></div></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+</div>
+
+<!-- NEW SESSION MODAL -->
+<div class="modal-overlay" id="newSessionModal">
+  <div class="modal" style="max-width:500px;">
+    <div class="modal-header">
+      <div class="modal-title">➕ New Attendance Session</div>
+      <button class="modal-close" onclick="closeModal('newSessionModal')">×</button>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Class *</label>
+      <select class="form-select" id="nsClass">
+        <option value="">Select class</option>
+        <option value="Class A">Class A</option>
+        <option value="Class B">Class B</option>
+        <option value="Joint">Joint (Class A + Class B)</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Date *</label>
+      <input class="form-input" type="date" id="nsDate"/>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Topic / Lesson</label>
+      <input class="form-input" id="nsTopic" placeholder="e.g. Functions &amp; Scope"/>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Session Notes</label>
+      <textarea class="form-textarea" id="nsNotes" placeholder="Optional notes..." style="min-height:70px;"></textarea>
+    </div>
+    <div id="openSessionWarning" style="display:none;background:#fff3cd;border:1.5px solid #ffc107;border-radius:8px;padding:10px 14px;font-size:13px;color:#856404;margin-bottom:16px;">
+      ⚠️ There is already an <strong>open session</strong>. Close it before starting a new one.
+    </div>
+    <button class="btn btn-primary w-full" onclick="createSession()">Start Session</button>
+  </div>
+</div>
+
+<!-- VIEW SESSION MODAL -->
+<div class="modal-overlay" id="viewSessionModal">
+  <div class="modal" style="max-width:640px;">
+    <div class="modal-header">
+      <div class="modal-title">Session Details</div>
+      <button class="modal-close" onclick="closeModal('viewSessionModal')">×</button>
+    </div>
+    <div id="viewSessionContent"></div>
+  </div>
+</div>
+
+<!-- CLOSE SESSION CONFIRM MODAL -->
+<div class="modal-overlay" id="closeConfirmModal">
+  <div class="modal" style="max-width:480px;">
+    <div class="modal-header">
+      <div class="modal-title">🔒 Close Session?</div>
+      <button class="modal-close" onclick="closeModal('closeConfirmModal')">×</button>
+    </div>
+    <div id="closeConfirmBody" style="margin-bottom:24px;"></div>
+    <div style="display:flex;gap:12px;">
+      <button class="btn btn-outline" onclick="closeModal('closeConfirmModal')" style="flex:1;">Cancel</button>
+      <button class="btn btn-danger" onclick="closeSession()" style="flex:1;">🔒 Close &amp; Auto-mark Absent</button>
+    </div>
+  </div>
+</div>
+
+<!-- EDIT REQUEST MODAL (for students on closed sessions) -->
+<div class="modal-overlay" id="editReqModal">
+  <div class="modal" style="max-width:500px;">
+    <div class="modal-header">
+      <div class="modal-title">✏️ Request Attendance Edit</div>
+      <button class="modal-close" onclick="closeModal('editReqModal')">×</button>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Student Serial No.</label>
+      <input class="form-input" id="erSerial" placeholder="e.g. A12" style="font-family:monospace;font-weight:700;"/>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Session</label>
+      <select class="form-select" id="erSession"></select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Correct Status Should Be</label>
+      <select class="form-select" id="erNewStatus">
+        <option value="present">Present</option>
+        <option value="late">Late</option>
+        <option value="absent">Absent</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Reason</label>
+      <textarea class="form-textarea" id="erReason" placeholder="Explain the reason for the correction..." style="min-height:80px;"></textarea>
+    </div>
+    <button class="btn btn-primary w-full" onclick="submitEditRequest()">Submit Request</button>
+  </div>
+</div>
+
+<!-- PENDING EDIT REQUESTS PANEL MODAL -->
+<div class="modal-overlay" id="editRequestsModal">
+  <div class="modal" style="max-width:680px;">
+    <div class="modal-header">
+      <div class="modal-title">✏️ Pending Edit Requests</div>
+      <button class="modal-close" onclick="closeModal('editRequestsModal')">×</button>
+    </div>
+    <div id="editRequestsList"></div>
+  </div>
+</div>
+
+<!-- IMPORT CSV MODAL -->
+<div class="modal-overlay" id="importAttModal">
+  <div class="modal" style="max-width:520px;">
+    <div class="modal-header">
+      <div class="modal-title">⬆️ Import Attendance CSV</div>
+      <button class="modal-close" onclick="closeModal('importAttModal')">×</button>
+    </div>
+    <p style="font-size:13px;color:var(--admin-text-muted);margin-bottom:12px;">
+      CSV columns: <strong>date, class, serials_present, serials_late, topic, notes</strong><br/>
+      Serials should be space-separated within the cell (e.g. "A1 A3 A7").
+    </p>
+    <div class="form-group">
+      <label class="form-label">Upload CSV File</label>
+      <input type="file" accept=".csv" id="attCsvFile" class="form-input" style="padding:8px;"/>
+    </div>
+    <button class="btn btn-primary w-full" onclick="importAttendanceCSV()">Import</button>
+  </div>
+</div>
+
+<div id="toast-container"></div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="js/supabase-config.js"></script><script src="js/db.js"></script>
+<script src="js/config.js"></script>
+<script src="js/admin-sidebar.js"></script>
+<script src="js/admin-attendance.js"></script>
+</body>
+</html>
